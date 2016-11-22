@@ -1,0 +1,13 @@
+
+# Add executable called "helloDemo" that is built from the source files
+# "demo.cxx" and "demo_b.cxx". The extensions are automatically found.
+add_executable (ball_test ball_test.cpp)
+add_executable (ball_train ball_train.cpp)
+add_executable (ball_train_cifar ball_train_cifar.cpp)
+
+# Link the executable to the Hello library. Since the Hello library has
+# public include directories we will use those link directories when building
+# helloDemo
+# target_link_libraries (helloDemo LINK_PUBLIC Hello)
+#target_link_libraries( ball_train ${CMAKE_THREAD_LIBS_INIT} )
+#target_link_libraries( ball_test ${CMAKE_THREAD_LIBS_INIT} )
