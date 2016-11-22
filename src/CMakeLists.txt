@@ -4,6 +4,8 @@
 add_executable (ball_test ball_test.cpp)
 add_executable (ball_train ball_train.cpp)
 add_executable (ball_train_cifar ball_train_cifar.cpp)
+add_executable (ball_test_cifar ball_test_cifar.cpp)
+add_executable (ball_slidingdetect ball_slidingdetect.cpp)
 
 # Link the executable to the Hello library. Since the Hello library has
 # public include directories we will use those link directories when building
@@ -11,3 +13,6 @@ add_executable (ball_train_cifar ball_train_cifar.cpp)
 # target_link_libraries (helloDemo LINK_PUBLIC Hello)
 #target_link_libraries( ball_train ${CMAKE_THREAD_LIBS_INIT} )
 #target_link_libraries( ball_test ${CMAKE_THREAD_LIBS_INIT} )
+
+target_link_libraries(ball_test_cifar ${OpenCV_LIBS} )
+target_link_libraries(ball_slidingdetect ${OpenCV_LIBS} )
