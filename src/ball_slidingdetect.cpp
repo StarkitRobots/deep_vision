@@ -99,7 +99,7 @@ void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn)
             // Draw only rectangle
             cv::rectangle(DrawResultHere, windows, cv::Scalar(255), 1, 8, 0);
             // Draw grid
-            if(res[1]>0.9)
+            if(res[1]>0.90)
                 cv::rectangle(DrawResultGrid, windows, cv::Scalar(0,0,255), 1, 8, 0);
             // else
             //     cv::rectangle(DrawResultGrid, windows, cv::Scalar(255), 1, 8, 0);
@@ -188,13 +188,14 @@ int main(int argc, char** argv) {
     }
     // recognize("ball_cifar_weights", argv[1]);
 
-    /*
-      cv::Mat img = cv::imread(argv[1]);
-      cv::Mat resized;
 
-      cv::resize(img, resized, cv::Size(160, 120), .0, .0,cv::INTER_AREA);
-      // cv::resize(img, resized, cv::Size(320, 240), .0, .0,cv::INTER_AREA);
-      */
+    cv::Mat img = cv::imread(argv[1]);
+    cv::Mat resized;
+
+    // cv::resize(img, resized, cv::Size(160, 120), .0, .0,cv::INTER_AREA);
+
+    cv::resize(img, resized, cv::Size(320, 240), .0, .0,cv::INTER_AREA);
+    cv::cvtColor(resized, resized, CV_YCrCb2BGR);
 
 
     network<sequential> nn;
@@ -204,23 +205,24 @@ int main(int argc, char** argv) {
     ifs >> nn;
 
 
+
+    slide(resized,32,32,4,nn);
+    cv::waitKey();
+
+
     /*
+      cv::VideoCapture cap(0); // open the default camera
+      if(!cap.isOpened())  // check if we succeeded
+      return -1;
+      cv::Mat resized;
+      for(;;)
+      {
+      cv::Mat frame;
+      cap >> frame; // get a new frame from camera
+      cv::resize(frame, resized, cv::Size(160, 120), .0, .0,cv::INTER_AREA);
       slide(resized,32,32,16,nn);
-      cv::waitKey();
+      if(cv::waitKey(10) >= 0) break;
+      }
     */
-
-    cv::VideoCapture cap(0); // open the default camera
-    if(!cap.isOpened())  // check if we succeeded
-        return -1;
-    cv::Mat resized;
-    for(;;)
-    {
-        cv::Mat frame;
-        cap >> frame; // get a new frame from camera
-        cv::resize(frame, resized, cv::Size(160, 120), .0, .0,cv::INTER_AREA);
-        slide(resized,32,32,16,nn);
-        if(cv::waitKey(10) >= 0) break;
-    }
-
 
 }
