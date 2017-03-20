@@ -1,9 +1,9 @@
 //*****************************************************************************
 //
-// File Name	: 'ball_test_exp.cpp'
+// File Name	: 'predict.cpp'
 // Author	: Steve NGUYEN
 // Contact      : steve.nguyen.000@gmail.com
-// Created	: lundi, novembre 20 2017
+// Created	: lundi, march 20 2017
 // Revised	:
 // Version	:
 // Target MCU	:
@@ -28,12 +28,6 @@ using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
 
-// rescale output to 0-100
-template <typename Activation>
-double rescale(double x) {
-    Activation a;
-    return 100.0 * (x - a.scale().first) / (a.scale().second - a.scale().first);
-}
 
 void convert_image(const std::string& imagefilename,
                    double minv,
@@ -109,32 +103,27 @@ void convert_image(const std::string& imagefilename,
 }
 
 template <typename N>
-void construct_net(N& nn) {
-    typedef convolutional_layer<activation::identity> conv;
-    typedef max_pooling_layer<relu> pool;
+void construct_net(N& nn, const std::string& arch, const std::string& weights) {
 
-    const int n_fmaps = 64; ///< number of feature maps for upper layer
-    const int n_fmaps2 = 64; ///< number of feature maps for lower layer
-    const int n_fc = 64; ///< number of hidden units in fully-connected layer
 
-    nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
-       << pool(32, 32, n_fmaps, 2)
-       << conv(16, 16, 5, n_fmaps, n_fmaps, padding::same)
-       << pool(16, 16, n_fmaps, 2)
-       << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
-       << pool(8, 8, n_fmaps2, 2)
-       << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
-       << fully_connected_layer<softmax>(n_fc, 2);
+    // load the architecture of the model in json format
+    nn.load(arch, content_type::model, file_format::json);
+
+    // load the weights of the model in binary format
+    nn.load(weights, content_type::weights, file_format::binary);
+
+
+
 }
 
-int recognize(const std::string& dictionary, const std::string& filename) {
+int recognize(const std::string& arch, const std::string& weights,const std::string& filename) {
     network<sequential> nn;
 
-    construct_net(nn);
+    construct_net(nn, arch, weights);
 
-    // load nets
-    ifstream ifs(dictionary.c_str());
-    ifs >> nn;
+    // // load nets
+    // ifstream ifs(dictionary.c_str());
+    // ifs >> nn;
 
     // convert imagefile to vec_t
     vec_t data;
@@ -156,6 +145,7 @@ int recognize(const std::string& dictionary, const std::string& filename) {
 
           // save filter shape of first convolutional layer
 
+
           if(i==0||i==2||i==4)
           {
           auto weight = nn.at<conv<activation::identity>>(i).weight_to_image();
@@ -163,6 +153,7 @@ int recognize(const std::string& dictionary, const std::string& filename) {
           weight.save(filename1) ;
           }
         */
+
         //DEBUG
         cout << "#layer:" << i << "\n";
         cout << "layer type:" << nn[i]->layer_type() << "\n";
@@ -188,17 +179,13 @@ int recognize(const std::string& dictionary, const std::string& filename) {
         std::cout<<i<<": "<<res[i]<<std::endl;
 
     }
-
-    // nn.save("test_exp.json", content_type::model, file_format::json);
-    // nn.save("test_exp_weights", content_type::weights, file_format::binary);
-
     return maxclass;
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        cout << "please specify image file";
+    if (argc != 4) {
+        cout << "USAGE: ./predict ARCH.json WEIGHTS.bin image"<<endl;
         return 0;
     }
-    return recognize("ball_exp_weights", argv[1]);
+    return recognize(argv[1],argv[2],argv[3]);
 }

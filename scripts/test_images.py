@@ -34,6 +34,8 @@ if __name__ == '__main__':
     files = [basetest + '/' + f for f in listdir(
         basetest) if isfile(join(basetest, f))]
 
+    print "runnin: ", basebin
+
     for img in files:
         print basebin,  img
         res = call([basebin, img])

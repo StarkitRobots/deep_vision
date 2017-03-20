@@ -164,13 +164,14 @@ void recognize(const std::string& dictionary, const std::string& filename) {
         std::cout<<i<<": "<<rescale<tan_h>(res[i])<<"% "<<res[i]<<std::endl;
     }
 
-
+    /*
     // save outputs of each layer
     for (size_t i = 0; i < nn.depth(); i++) {
-        auto out_img = nn[i]->output_to_image();
-        auto filename = "cifar_layer_" + std::to_string(i) + ".png";
-        out_img.save(filename);
+    auto out_img = nn[i]->output_to_image();
+    auto filename = "cifar_layer_" + std::to_string(i) + ".png";
+    out_img.save(filename);
     }
+    */
     // // save filter shape of first convolutional layer
     // {
     //     auto weight = nn.at<convolutional_layer<tan_h>>(0).weight_to_image();

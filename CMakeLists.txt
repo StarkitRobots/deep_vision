@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Set variables:
 #   * PROJECT_NAME
 #   * PROJECT_VERSION
-project(deep VERSION 1.0.0 LANGUAGES C CXX)
+project(deepvision VERSION 1.0.0 LANGUAGES C CXX)
 
 find_package( OpenCV REQUIRED )
 

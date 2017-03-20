@@ -14,6 +14,8 @@
 * cmake ..
 * make
 
+* WARNING! Make sure tiny-dnn is in a release version (currently tag v1.0.0a3)
+
 ### TODOs ###
 
 * test avec rotation de l'img 90 deg à droite

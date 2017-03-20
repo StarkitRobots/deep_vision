@@ -1,13 +1,14 @@
 
 # Add executable called "helloDemo" that is built from the source files
 # "demo.cxx" and "demo_b.cxx". The extensions are automatically found.
-add_executable (ball_test ball_test.cpp)
+add_executable (ball_test ball_test.cpp) #broken with tiny-dnn update?
 add_executable (ball_train ball_train.cpp)
 add_executable (ball_train_cifar ball_train_cifar.cpp)
 add_executable (ball_test_cifar ball_test_cifar.cpp)
 add_executable (ball_slidingdetect ball_slidingdetect.cpp)
 add_executable (ball_train_exp ball_train_exp.cpp)
 add_executable (ball_test_exp ball_test_exp.cpp)
+add_executable (predict predict.cpp)
 
 # Link the executable to the Hello library. Since the Hello library has
 # public include directories we will use those link directories when building
@@ -18,4 +19,10 @@ add_executable (ball_test_exp ball_test_exp.cpp)
 
 target_link_libraries(ball_test_cifar ${OpenCV_LIBS} )
 target_link_libraries(ball_slidingdetect ${OpenCV_LIBS} )
+target_link_libraries(predict ${OpenCV_LIBS} )
 target_link_libraries(ball_test_exp ${OpenCV_LIBS} )
+
+
+# add_executable(benchmarks_all benchmarks/main.cpp ${tiny_dnn_headers})
+# target_link_libraries(benchmarks_all
+#     ${project_library_target_name} ${REQUIRED_LIBRARIES})

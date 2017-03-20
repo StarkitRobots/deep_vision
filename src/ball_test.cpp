@@ -26,6 +26,7 @@
 #include <iostream>
 #include "tiny_dnn/tiny_dnn.h"
 
+
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
@@ -51,6 +52,7 @@ void convert_image(const std::string& imagefilename,
     std::transform(resized.begin(), resized.end(), std::back_inserter(data),
         [=](uint8_t c) { return (255 - c) * (maxv - minv) / 255.0 + minv; });
 }
+
 
 void recognize(const std::string& dictionary, const std::string& filename) {
     network<sequential> nn;
