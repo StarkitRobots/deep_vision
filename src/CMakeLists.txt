@@ -6,6 +6,8 @@ add_executable (ball_train ball_train.cpp)
 add_executable (ball_train_cifar ball_train_cifar.cpp)
 add_executable (ball_test_cifar ball_test_cifar.cpp)
 add_executable (ball_slidingdetect ball_slidingdetect.cpp)
+add_executable (ball_train_exp ball_train_exp.cpp)
+add_executable (ball_test_exp ball_test_exp.cpp)
 
 # Link the executable to the Hello library. Since the Hello library has
 # public include directories we will use those link directories when building
@@ -16,3 +18,4 @@ add_executable (ball_slidingdetect ball_slidingdetect.cpp)
 
 target_link_libraries(ball_test_cifar ${OpenCV_LIBS} )
 target_link_libraries(ball_slidingdetect ${OpenCV_LIBS} )
+target_link_libraries(ball_test_exp ${OpenCV_LIBS} )
