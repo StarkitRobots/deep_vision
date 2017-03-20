@@ -24,6 +24,8 @@
 
 #include "tiny_dnn/tiny_dnn.h"
 
+// #define DEBUG
+
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
@@ -48,32 +50,16 @@ void convert_image(const std::string& imagefilename,
     cv::resize(img, resized, cv::Size(w, h), .0, .0,cv::INTER_AREA);
     data.resize(w*h*resized.channels(), minv);
 
-    // std::vector<unsigned char> buf(w*h*resized.channels());
-    // std::transform(buf.begin(), buf.end(), std::back_inserter(resized),
-    //                [=](unsigned char c) { return minv + (maxv - minv) * c / 255; });
-
-    // for(int c = 0; c < resized.channels(); ++c){
-    //     for(int y = 0; y < resized.rows; ++y){
-    //         for(int x = 0; x < resized.cols; ++x){
-    //             data[c * w * h + y*w + x] = minv + (maxv - minv) * resized.data[c*resized.step + y*resized.step + x] / 255;
-    //         }
-    //     }
-    // }
-
-    // data=buf.data;
-    // cv::normalize(res,resized,-1,1);
+#ifdef DEBUG
     cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
     cv::imshow( "Display window", img );                   // Show our image inside it.
 
     std::cout<<"DEBUG"<<std::endl;
     std::cout<<resized.rows<<" "<<resized.cols<<std::endl;
-    // for(int i=0; i<3*resized.rows*resized.cols;++i)
-    //     std::cout<<resized.data[i]<<" ";
-
-    resized.copyTo(res);
     cv::imshow( "resize", resized );                   // Show our image inside it.
-    // for(int i=0; i<resized.channels()*resized.rows*resized.cols;++i)
-    //     res.data[i]=minv + (maxv - minv) * (float)resized.data[i] / 255.0;
+#endif
+    resized.copyTo(res);
+
 
 
     cv::Mat ch1, ch2, ch3;
@@ -99,13 +85,9 @@ void convert_image(const std::string& imagefilename,
 
     // cv::imshow( "scale", res );                   // Show our image inside it.
 
+#ifdef DEBUG
     cv::waitKey(0);                                          // Wait for a keystroke in the window
-
-    // for(int i=0; i<res.channels()*res.rows*res.cols;++i)
-    //     data[i]=res.data[i];
-    // for(int i=0; i<resized.channels()*resized.rows*resized.cols;++i)
-    //     std::cout<<data[i]<<" ";
-
+#endif
 }
 
 template <typename N>
@@ -124,38 +106,53 @@ void construct_net(N& nn) {
        << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
        << pool(8, 8, n_fmaps2, 2)
        << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
-            << fully_connected_layer<softmax>(n_fc, 2);
-        }
+       << fully_connected_layer<softmax>(n_fc, 2);
+}
 
-    void recognize(const std::string& dictionary, const std::string& filename) {
-        network<sequential> nn;
+int recognize(const std::string& dictionary, const std::string& filename) {
+    network<sequential> nn;
 
-        construct_net(nn);
+    construct_net(nn);
 
-        // load nets
-        ifstream ifs(dictionary.c_str());
-        ifs >> nn;
-
-        // convert imagefile to vec_t
-    vec_t data;
-    convert_image(filename, -1.0, 1.0, 32, 32, data);
-
-    // recognize
-    auto res = nn.predict(data);
-
-    std::cout<<"Score"<<std::endl;
-    for (size_t i = 0; i < res.size(); i++)
+    // load nets
+    ifstream ifs(dictionary.c_str());
+    if (!ifs.is_open())
     {
-        std::cout<<i<<": "<<rescale<tan_h>(res[i])<<"% "<<res[i]<<std::endl;
+        std::cerr<<"Can't find weight file"<<std::endl;
+        exit(-1);
     }
+    ifs >> nn;
 
+    // convert imagefile to vec_t
+     vec_t data;
+     convert_image(filename, -1.0, 1.0, 32, 32, data);
 
+     // recognize
+     timer t;
+     t.restart();
+     auto res = nn.predict(data);
+     std::cout<<"(time: "<<t.elapsed()<<" s)"<<std::endl;
+     std::cout<<"Score"<<std::endl;
+     int maxclass=0;
+     double prevmax=0;
+     for (size_t i = 0; i < res.size(); i++)
+     {
+         if(res[i]>prevmax)
+         {
+             prevmax=res[i];
+             maxclass=i;
+         }
+         std::cout<<i<<": "<<rescale<tan_h>(res[i])<<"% "<<res[i]<<std::endl;
+     }
+
+#ifdef DEBUG
     // save outputs of each layer
     for (size_t i = 0; i < nn.depth(); i++) {
         auto out_img = nn[i]->output_to_image();
         auto filename = "cifar_layer_" + std::to_string(i) + ".png";
         out_img.save(filename);
     }
+#endif
     // // save filter shape of first convolutional layer
     // {
     //     auto weight = nn.at<convolutional_layer<tan_h>>(0).weight_to_image();
@@ -163,13 +160,13 @@ void construct_net(N& nn) {
     //     weight.save(filename);
     // }
 
-
-    }
+    return maxclass;
+}
 
 int main(int argc, char** argv) {
     if (argc != 2) {
         cout << "please specify image file";
         return 0;
     }
-    recognize("ball_cifar_weights", argv[1]);
+    return recognize("ball_cifar_weights", argv[1]);
 }

@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
         cerr << "Usage : " << argv[0]
              << "arg[0]: train_file"
              << "arg[1]: test_file"
-             << "arg[2]: learning rate (example:0.01)" << endl;
+             << "arg[2]: learning rate (example:0.001)" << endl;
         return -1;
     }
     train_cifar(argv[1], argv[2],stod(argv[3]), cout);

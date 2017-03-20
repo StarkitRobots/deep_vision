@@ -47,20 +47,7 @@ map2 = np.asarray(
 nbball = 0
 nbnoball = 0
 
-MODE = 0  # positive or negative data
-
-
-def add_noise(channel,  noise):
-
-    for i in range(channel.shape[0]):
-        for j in range(channel.shape[1]):
-            if (channel[i][j] + noise) > 255:
-                channel[i][j] = 255
-            elif (channel[i][j] + noise) < 0:
-                channel[i][j] = 0
-            else:
-                channel[i][j] += noise
-    return channel
+MODE = 0  # 0 positive or 1 negative data
 
 for tags, basedir in zip(tags_files, directories):
 
@@ -148,7 +135,7 @@ for tags, basedir in zip(tags_files, directories):
                 col = int(im[2])
                 rad = float(im[3])
 
-                if (row - window_size) < 0 or (row + window_size) > image.shape[0] or (col - window_size) < 0 or (col + window_size) > image.shape[1] or rad < 12:
+                if (row - window_size) < 0 or (row + window_size) > image.shape[0] or (col - window_size) < 0 or (col + window_size) > image.shape[1]:
                     print 'ignore'
                     continue
 
@@ -161,10 +148,9 @@ for tags, basedir in zip(tags_files, directories):
                 data = dst[row - window_size: row + window_size,
                            dst.shape[1] - col - window_size:dst.shape[1] - col + window_size]
                 nbball += 1
-
-                # if (nbball % 10) == 0:  # reserve some data for tests
-                #     cv2.imwrite('keep_%06d.png' % (nbball), data)
-                #     continue
+                if (nbball % 10) == 0:  # reserve some data for tests
+                    cv2.imwrite('keep_%06d.png' % (nbball), data)
+                    continue
 
                 cv2.imwrite('%06d.png' % (nbball), data)
 
@@ -176,9 +162,9 @@ for tags, basedir in zip(tags_files, directories):
                 # 255), 2)
 
                 for i in range(50):
-                    noisex = np.random.randint(- 20, 20)
-                    noisey = np.random.randint(- 20, 20)
-                    angle = np.random.randint(- 20, 20)
+                    noisex = np.random.randint(- 40, 40)
+                    noisey = np.random.randint(- 40, 40)
+                    angle = np.random.randint(- 15, 15)
 
                     # M = cv2.getRotationMatrix2D(
                     #     (data.shape[0] / 2, data.shape[1] / 2), angle, 1)
@@ -201,38 +187,29 @@ for tags, basedir in zip(tags_files, directories):
                     # window_size + noisex]
 
                     # also add noise on brightness
-                    # hsv = cv2.cvtColor(dd, cv2.COLOR_BGR2HSV)
-                    yuv = cv2.cvtColor(dd, cv2.COLOR_BGR2YUV)
+                    hsv = cv2.cvtColor(dd, cv2.COLOR_BGR2HSV)
 
-                    # h, s, v = cv2.split(hsv)
-                    y, u, v = cv2.split(yuv)
-
-                    b, g, r = cv2.split(dd)
-
+                    h, s, v = cv2.split(hsv)
                     # print np.min(v), np.max(v)
-                    noise = np.random.randint(-32, 16)
-
-                    b = add_noise(b, noise)
-                    g = add_noise(g, noise)
-                    r = add_noise(r, noise)
-
-                    # v = np.clip(v, 0, 255)
+                    noise = np.random.randint(- 40, 10)
+                    # noise = np.random.rand()
+                    # print v, v.shape
+                    # v = np.floor(v / noise)
+                    # v = v.astype(int)
+                    # v = v / 2
+                    v += noise
+                    v = np.clip(v, 0, 255)
                     # print v, v.shape, np.min(v), np.max(v), noise
-                    # hsv = cv2.merge((h, s, v))
-                    # yuv = cv2.merge((y, u, v))
-                    bgr = cv2.merge((b, g, r))
+                    hsv = cv2.merge((h, s, v))
 
                     # hsv[:, :, 2] += np.random.randint(- 100, 0)
-                    # imgout = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-                    # imgout = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-
-                    imgout = bgr
+                    imgout = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
                     cv2.imwrite('%06d.png' % (nbball), imgout)
                     nbball += 1
-                    # cv2.rectangle(dst, (dst.shape[1] - col - int(rad), row - int(rad)), (
-                    #     dst.shape[1] - col + int(rad), row + int(rad)), (0, 0, 255), 2)
-                    # cv2.imshow("undistort", dst)
+                # cv2.rectangle(dst, (dst.shape[1] - col - int(rad), row - int(rad)), (
+                #     dst.shape[1] - col + int(rad), row + int(rad)), (0, 0, 255), 2)
+                # cv2.imshow("undistort", dst)
 
                 # cv2.waitKey()
     else:
