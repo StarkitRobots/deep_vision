@@ -160,6 +160,10 @@ int recognize(const std::string& dictionary, const std::string& filename) {
     //     weight.save(filename);
     // }
 
+    // nn.save("ball_cifar.json", content_type::model, file_format::json);
+    // nn.save("ball_cifar_weights", content_type::weights, file_format::binary);
+
+
     return maxclass;
 }
 
