@@ -53,11 +53,11 @@ void construct_net(N& nn) {
     const serial_size_t n_fmaps2 = 32;  ///< number of feature maps for lower layer
     const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
 
-    nn << conv(32, 32, 8, 3, n_fmaps, padding::same)
-       << pool(32, 32, n_fmaps, 2)
-       << conv(16, 16, 8, n_fmaps, n_fmaps2, padding::same)
-       << pool(16, 16, n_fmaps2, 2)
-       << fully_connected_layer<activation::identity>(8 * 8 * n_fmaps2, n_fc)
+    nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
+       << pool(32, 32, n_fmaps2, 8)
+            // << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
+            // << pool(8, 8, n_fmaps2, 2)
+       << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
 }
 
@@ -119,7 +119,7 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
     nn.test(test_images, test_labels).print_detail(cout);
 
     nn.save("test_exp.json", content_type::model, file_format::json);
-    nn.save("test_exp_weights", content_type::weights, file_format::binary);
+    nn.save("test_exp_weights.bin", content_type::weights, file_format::binary);
 
     // save networks
     ofstream ofs("ball_exp_weights");
