@@ -53,9 +53,9 @@ void construct_net(N& nn) {
     const serial_size_t n_fmaps2 = 32;  ///< number of feature maps for lower layer
     const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
 
-    nn << conv(32, 32, 16, 3, n_fmaps, padding::same)
+    nn << conv(32, 32, 8, 3, n_fmaps, padding::same)
        << pool(32, 32, n_fmaps, 2)
-       << conv(16, 16, 16, n_fmaps, n_fmaps2, padding::same)
+       << conv(16, 16, 8, n_fmaps, n_fmaps2, padding::same)
        << pool(16, 16, n_fmaps2, 2)
        << fully_connected_layer<activation::identity>(8 * 8 * n_fmaps2, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
