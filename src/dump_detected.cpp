@@ -1,9 +1,9 @@
 //*****************************************************************************
 //
-// File Name	: 'ball_slidingdetect.cpp'
+// File Name	: 'dump_detected.cpp'
 // Author	: Steve NGUYEN
 // Contact      : steve.nguyen.000@gmail.com
-// Created	: mardi, novembre 22 2016
+// Created	: vendredi, march 24 2017
 // Revised	:
 // Version	:
 // Target MCU	:
@@ -21,19 +21,39 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
-
+#include <unistd.h>
 #include "tiny_dnn/tiny_dnn.h"
+
+
+#include <chrono>  // chrono::system_clock
+#include <ctime>   // localtime
+#include <sstream> // stringstream
+#include <iomanip> // put_time
+#include <string>  // string
+#include <sys/time.h>
 
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
 
-// rescale output to 0-100
-template <typename Activation>
-double rescale(double x) {
-    Activation a;
-    return 100.0 * (x - a.scale().first) / (a.scale().second - a.scale().first);
+std::string return_current_time_and_date()
+{
+
+
+    timeval curTime;
+    gettimeofday(&curTime, NULL);
+    int milli = curTime.tv_usec / 1000;
+
+    char buffer [80];
+    strftime(buffer, 80, "%Y%m%d_%H%M%S", localtime(&curTime.tv_sec));
+
+    char currentTime[84] = "";
+    sprintf(currentTime, "%s%03d", buffer, milli);
+
+    return string(currentTime);
+
 }
+
 
 void convert_mat(cv::Mat& image,
                  double minv,
@@ -68,10 +88,10 @@ void convert_mat(cv::Mat& image,
 
 }
 
-void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn)
+void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn, char *dest)
 {
     cv::Mat DrawResultGrid= img.clone();
-
+    int nb=0;
     // Cycle row step
     for (int row = 0; row <= img.rows - w; row += step)
     {
@@ -100,7 +120,11 @@ void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn)
             cv::rectangle(DrawResultHere, windows, cv::Scalar(255), 1, 8, 0);
             // Draw grid
             if(res[1]>0.50)
+            {
                 cv::rectangle(DrawResultGrid, windows, cv::Scalar(0,0,255), 1, 8, 0);
+                cv::imwrite(string(dest)+string("/")+return_current_time_and_date()+string(".png"),Roi);
+                nb++;
+            }
             // else
             //     cv::rectangle(DrawResultGrid, windows, cv::Scalar(255), 1, 8, 0);
 
@@ -110,8 +134,10 @@ void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn)
             // cv::waitKey(100);
 
 
-            cv::namedWindow("Step 3 Show Grid", cv::WINDOW_AUTOSIZE);
-            cv::imshow("Step 3 Show Grid", DrawResultGrid);
+            // cv::namedWindow("Step 3 Show Grid", cv::WINDOW_AUTOSIZE);
+            // cv::imshow("Step 3 Show Grid", DrawResultGrid);
+
+
             // cv::waitKey(100);
 
 
@@ -121,6 +147,7 @@ void slide(cv::Mat img, int w, int h, int step,  network<sequential> nn)
             // cv::waitKey(100);
         }
     }
+    std::cout<<nb<<" detected"<<std::endl;
 }
 /*
   template <typename N>
@@ -162,8 +189,8 @@ int main(int argc, char** argv) {
     //     return 0;
     // }
 
-    if (argc != 4) {
-        cout << "USAGE: ./predict ARCH.json WEIGHTS.bin image"<<endl;
+    if (argc != 5) {
+        cout << "USAGE: ./dump_detected ARCH.json WEIGHTS.bin image destination_folder"<<endl;
         return 0;
     }
     // recognize("ball_cifar_weights", argv[1]);
@@ -175,7 +202,7 @@ int main(int argc, char** argv) {
     cv::resize(img, resized, cv::Size(160, 120), .0, .0,cv::INTER_AREA);
 
     // cv::resize(img, resized, cv::Size(320, 240), .0, .0,cv::INTER_AREA);
-    // cv::cvtColor(resized, resized, CV_YCrCb2BGR);
+    cv::cvtColor(resized, resized, CV_YCrCb2BGR);
 
 
     network<sequential> nn;
@@ -188,9 +215,10 @@ int main(int argc, char** argv) {
     construct_net(nn, argv[1],argv[2]);
 
 
-    slide(resized,32,32,8,nn);
+
+    slide(resized,32,32,8,nn,argv[4]);
     // slide(resized,64,64,8,nn);
-    cv::waitKey();
+    // cv::waitKey();
 
 
     /*
