@@ -29,7 +29,7 @@ from os.path import isfile, join
 if __name__ == '__main__':
     result = {}
     basebin = sys.argv[1]
-    basetest = os.path.dirname(sys.argv[2])
+    basetest = os.path.dirname(sys.argv[4])
 
     files = [basetest + '/' + f for f in listdir(
         basetest) if isfile(join(basetest, f))]
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     for img in files:
         print basebin,  img
-        res = call([basebin, img])
+        res = call([basebin, sys.argv[2], sys.argv[3], img])
         print "Output class: ", res
         result[img] = res
 
@@ -68,5 +68,5 @@ if __name__ == '__main__':
     # for neg in negimg:
     #     shutil.copy(neg, basetest + "/neg/" + os.path.basename(neg))
 
-    # for pos in posimg:
-    #     shutil.copy(pos, basetest + "/pos/" + os.path.basename(pos))
+    for pos in posimg:
+        shutil.copy(pos, basetest + "/pos/" + os.path.basename(pos))
