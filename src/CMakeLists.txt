@@ -10,6 +10,7 @@ add_executable (ball_train_exp ball_train_exp.cpp)
 add_executable (ball_test_exp ball_test_exp.cpp)
 add_executable (predict predict.cpp)
 add_executable (dump_detected dump_detected.cpp)
+add_executable (test_prediction test_prediction.cpp)
 
 # Link the executable to the Hello library. Since the Hello library has
 # public include directories we will use those link directories when building
@@ -23,6 +24,7 @@ target_link_libraries(ball_slidingdetect ${OpenCV_LIBS} )
 target_link_libraries(predict ${OpenCV_LIBS} )
 target_link_libraries(ball_test_exp ${OpenCV_LIBS} )
 target_link_libraries(dump_detected ${OpenCV_LIBS} )
+target_link_libraries(test_prediction ${OpenCV_LIBS} )
 
 # add_executable(benchmarks_all benchmarks/main.cpp ${tiny_dnn_headers})
 # target_link_libraries(benchmarks_all
