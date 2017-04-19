@@ -23,6 +23,8 @@
 #include <opencv2/opencv.hpp>
 
 #include "tiny_dnn/tiny_dnn.h"
+#include <string>
+#include <vector>
 
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;

@@ -22,6 +22,8 @@
 #include <iostream>
 #include <vector>
 #include "tiny_dnn/tiny_dnn.h"
+#include <string>
+#include <cmath>
 
 // #define CNN_TASK_SIZE 8
 
@@ -53,11 +55,15 @@ void construct_net(N& nn) {
     const serial_size_t n_fmaps2 = 32;  ///< number of feature maps for lower layer
     const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
 
+    // const serial_size_t n_fmaps = 16;   ///< number of feature maps for upper layer
+    // const serial_size_t n_fmaps2 = 16;  ///< number of feature maps for lower layer
+    // const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
+
     nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
-       << pool(32, 32, n_fmaps2, 8)
+       << pool(32, 32, n_fmaps2, 16)
             // << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
             // << pool(8, 8, n_fmaps2, 2)
-       << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
+       << fully_connected_layer<activation::identity>(2 * 2 * n_fmaps2, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
 }
 
@@ -98,7 +104,7 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
         timer t1;
         tiny_dnn::result res = nn.test(test_images, test_labels);
         cout << t1.elapsed() << "s elapsed (test)." << endl;
-        log << res.num_success << "/" << res.num_total << endl;
+        log << res.num_success << "/" << res.num_total << " "<<(float)(res.num_success)/(float)(res.num_total)*100.0<<"%"<<endl;
 
         disp.restart(train_images.size());
         t.restart();
