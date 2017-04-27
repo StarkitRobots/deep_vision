@@ -82,8 +82,8 @@ void convert_image(const std::string& imagefilename,
 
     // data=buf.data;
     // cv::normalize(res,resized,-1,1);
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
-    cv::imshow( "Display window", img );                   // Show our image inside it.
+    //cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
+    //cv::imshow( "Display window", img );                   // Show our image inside it.
 
     // std::cout<<"DEBUG"<<std::endl;
     // std::cout<<resized.rows<<" "<<resized.cols<<std::endl;
@@ -91,7 +91,7 @@ void convert_image(const std::string& imagefilename,
     //     std::cout<<resized.data[i]<<" ";
 
     resized.copyTo(res);
-    cv::imshow( "resize", resized );                   // Show our image inside it.
+    //cv::imshow( "resize", resized );                   // Show our image inside it.
     // for(int i=0; i<resized.channels()*resized.rows*resized.cols;++i)
     //     res.data[i]=minv + (maxv - minv) * (float)resized.data[i] / 255.0;
 
@@ -148,9 +148,12 @@ int recognize(network<sequential> &nn, const std::string& filename) {
     // ifstream ifs(dictionary.c_str());
     // ifs >> nn;
 
+    int img_width = 16;
+    int img_height = 16;
+
     // convert imagefile to vec_t
     vec_t data;
-    convert_image(filename, -1.0, 1.0, 32, 32, data);
+    convert_image(filename, -1.0, 1.0, img_width, img_height, data);
 
     timer t;
     t.restart();

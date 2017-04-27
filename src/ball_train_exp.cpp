@@ -32,14 +32,76 @@ using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
 
+static void parse_file(const std::string& filename,
+                       std::vector<vec_t> *train_images,
+                       std::vector<label_t> *train_labels,
+                       float_t scale_min,
+                       float_t scale_max,
+                       int x_padding,
+                       int y_padding,
+                       int image_width,
+                       int image_height,
+                       int image_depth)
+{
+  // Computing image size
+  int image_area = image_width * image_height;
+  int image_size = image_area * image_depth;
+
+  if (x_padding < 0 || y_padding < 0)
+    throw nn_error("padding size must not be negative");
+  if (scale_min >= scale_max)
+    throw nn_error("scale_max must be greater than scale_min");
+
+  std::ifstream ifs(filename.c_str(), std::ios::in | std::ios::binary);
+  if (ifs.fail() || ifs.bad())
+    throw nn_error("failed to open file:" + filename);
+
+  uint8_t label;
+  std::vector<unsigned char> buf(image_size);
+
+  while (ifs.read((char*) &label, 1)) {
+    vec_t img;
+
+    if (!ifs.read((char*) &buf[0], image_size)) break;
+
+    if (x_padding || y_padding)
+    {
+      int w = image_width + 2 * x_padding;
+      int h = image_height + 2 * y_padding;
+
+      img.resize(w * h * image_depth, scale_min);
+
+      for (int c = 0; c < image_depth; c++) {
+        for (int y = 0; y < image_height; y++) {
+          for (int x = 0; x < image_width; x++) {
+            img[c * w * h + (y + y_padding) * w + x + x_padding]
+              = scale_min + (scale_max - scale_min) * buf[c * image_area + y * image_width + x] / 255;
+          }
+        }
+      }
+    }
+    else
+    {
+      std::transform(buf.begin(), buf.end(), std::back_inserter(img),
+                     [=](unsigned char c) { return scale_min + (scale_max - scale_min) * c / 255; });
+    }
+
+    train_images->push_back(img);
+    train_labels->push_back(label);
+  }
+}
+
+
 template <typename N>
-void construct_basic_net(N& nn) {
+void construct_basic_net(N& nn,
+                         int input_width,
+                         int input_height,
+                         int input_depth) {
     typedef convolutional_layer<activation::identity> conv;
     typedef max_pooling_layer<relu> pool;
 
-    const serial_size_t input_width = 32;
-    const serial_size_t input_height = 32;
-    const serial_size_t pooling_size = 16;
+    const serial_size_t fc_grid_size = 2; /// number of columns in last layer
+    const serial_size_t pooling_size = input_width / fc_grid_size;
     const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
     const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
 
@@ -47,7 +109,9 @@ void construct_basic_net(N& nn) {
     const serial_size_t fc_layer_input_dim =
       (input_width / pooling_size) * (input_height / pooling_size) * n_fmaps;
 
-    nn << conv(input_width, input_height, 5, 3, n_fmaps, padding::same)
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+
+    nn << conv(input_width, input_height, 5, input_depth, n_fmaps, padding::same)
        << pool(input_width, input_height, n_fmaps, pooling_size)
        << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
@@ -89,11 +153,16 @@ void construct_net(N& nn) {
 }
 
 void train_cifar(string data_train, string data_test,double learning_rate, ostream& log) {
+    // image size
+    int input_width = 16;
+    int input_height = 16;
+    int input_depth = 3;
+
     // specify loss-function and learning strategy
     network<sequential> nn;
     adam optimizer;
 
-    construct_basic_net(nn);
+    construct_basic_net(nn, input_width, input_height, input_depth);
 
     log << "learning rate:" << learning_rate << endl;
 
@@ -104,11 +173,13 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
     vector<vec_t> train_images, test_images;
 
 
-    parse_cifar10(data_train,
-                  &train_images, &train_labels, -1.0, 1.0, 0, 0);
+    parse_file(data_train,
+               &train_images, &train_labels, -1.0, 1.0, 0, 0,
+               input_width, input_height, input_depth);
 
-    parse_cifar10(data_test,
-                  &test_images, &test_labels, -1.0, 1.0, 0, 0);
+    parse_file(data_test,
+               &test_images, &test_labels, -1.0, 1.0, 0, 0,
+               input_width, input_height, input_depth);
 
     cout << "start learning" << endl;
 
@@ -155,10 +226,10 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        cerr << "Usage : " << argv[0]
-             << " arg[0]: train_file"
-             << " arg[1]: test_file"
-             << " arg[2]: learning rate (example:0.01)" << endl;
+      cerr << "Usage : " << argv[0] << endl
+           << " arg[0]: train_file " << endl
+           << " arg[1]: test_file " << endl
+           << " arg[2]: learning rate (example:0.01)" << endl;
         return -1;
     }
     train_cifar(argv[1], argv[2],stod(argv[3]), cout);

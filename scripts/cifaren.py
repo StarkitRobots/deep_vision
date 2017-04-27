@@ -30,7 +30,7 @@ import cv2
 import os
 
 
-def to_bin(filename, label, w=32, h=32):
+def to_bin(filename, label, w, h):
     im = cv2.imread(filename)
     print(filename)
     # cv2.imshow('orig', im)
@@ -47,7 +47,7 @@ def to_bin(filename, label, w=32, h=32):
     return out
 
 
-def to_cifar(positive_dir, negative_dir, outfile, nbtest = 1000, w = 32, h = 32):
+def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h):
     data_dict = {}
     for file in os.listdir(positive_dir):
         if file.endswith(".png"):
@@ -79,7 +79,15 @@ def to_cifar(positive_dir, negative_dir, outfile, nbtest = 1000, w = 32, h = 32)
     dataout.tofile(outfile)
 
 if __name__ == '__main__':
-    if (len(sys.argv) < 4):
-        print("Usage: <positive_directory> <negative_directory> <output_file>")
+    if (len(sys.argv) <= 4):
+        print("Usage: <positive_directory> <negative_directory> <output_file> <opt: nb_tests> <opt: size>")
+        exit()
+    nb_tests = 1000
+    size = 32
+    if (len(sys.argv) > 4):
+        nb_tests = int(sys.argv[4])
+    if (len(sys.argv) > 5):
+        size = int(sys.argv[5])
+    print ("Using " + str(nb_tests) + " tests and size " + str(size) + "x" + str(size))
     # positive_dir negative_dir outputfile
-    to_cifar(sys.argv[1], sys.argv[2], sys.argv[3])
+    to_cifar(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, size, size)
