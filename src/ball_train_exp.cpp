@@ -156,9 +156,9 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
 int main(int argc, char **argv) {
     if (argc != 4) {
         cerr << "Usage : " << argv[0]
-             << "arg[0]: train_file"
-             << "arg[1]: test_file"
-             << "arg[2]: learning rate (example:0.01)" << endl;
+             << " arg[0]: train_file"
+             << " arg[1]: test_file"
+             << " arg[2]: learning rate (example:0.01)" << endl;
         return -1;
     }
     train_cifar(argv[1], argv[2],stod(argv[3]), cout);
