@@ -157,6 +157,7 @@ int recognize(const std::string& arch, const std::string& weights,const std::str
         */
 
         //DEBUG
+
         cout << "#layer:" << i << "\n";
         cout << "layer type:" << nn[i]->layer_type() << "\n";
         cout << "input:" << nn[i]->in_data_size() << "(" << nn[i]->in_data_shape() << ")\n";
@@ -166,6 +167,11 @@ int recognize(const std::string& arch, const std::string& weights,const std::str
 
 
     std::cout<<"Score"<<std::endl;
+
+    //save first cnn layer as bitmap
+    auto weight = nn.at<conv<activation::identity>>(0).weight_to_image();
+    auto filename1 = "exp_weight_" + std::to_string(0) + ".png";
+    weight.save(filename1) ;
 
     int maxclass=0;
     double prevmax=0;
