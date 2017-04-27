@@ -47,7 +47,7 @@ def to_bin(filename, label, w=32, h=32):
     return out
 
 
-def to_cifar(positive_dir, negative_dir, outfile, nbtest = 500, w = 32, h = 32):
+def to_cifar(positive_dir, negative_dir, outfile, nbtest = 1000, w = 32, h = 32):
     data_dict = {}
     for file in os.listdir(positive_dir):
         if file.endswith(".png"):
