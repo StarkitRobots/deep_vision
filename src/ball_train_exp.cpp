@@ -33,6 +33,27 @@ using namespace tiny_dnn::activation;
 using namespace std;
 
 template <typename N>
+void construct_basic_net(N& nn) {
+    typedef convolutional_layer<activation::identity> conv;
+    typedef max_pooling_layer<relu> pool;
+
+    const serial_size_t input_width = 32;
+    const serial_size_t input_height = 32;
+    const serial_size_t pooling_size = 16;
+    const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
+    const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
+
+    // Some of the values can be determined automatically
+    const serial_size_t fc_layer_input_dim =
+      (input_width / pooling_size) * (input_height / pooling_size) * n_fmaps;
+
+    nn << conv(input_width, input_height, 5, 3, n_fmaps, padding::same)
+       << pool(input_width, input_height, n_fmaps, pooling_size)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
+       << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
+}
+
+template <typename N>
 void construct_net(N& nn) {
     typedef convolutional_layer<activation::identity> conv;
     typedef max_pooling_layer<relu> pool;
@@ -72,7 +93,7 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
     network<sequential> nn;
     adam optimizer;
 
-    construct_net(nn);
+    construct_basic_net(nn);
 
     log << "learning rate:" << learning_rate << endl;
 
