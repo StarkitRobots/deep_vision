@@ -79,5 +79,7 @@ def to_cifar(positive_dir, negative_dir, outfile, nbtest = 500, w = 32, h = 32):
     dataout.tofile(outfile)
 
 if __name__ == '__main__':
+    if (len(sys.argv) < 4):
+        print("Usage: <positive_directory> <negative_directory> <output_file>")
     # positive_dir negative_dir outputfile
     to_cifar(sys.argv[1], sys.argv[2], sys.argv[3])
