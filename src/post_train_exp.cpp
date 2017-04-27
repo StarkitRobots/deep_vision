@@ -1,9 +1,9 @@
 //*****************************************************************************
 //
-// File Name	: 'ball_train_exp.cpp'
+// File Name	: 'post_train_exp.cpp'
 // Author	: Steve NGUYEN
 // Contact      : steve.nguyen.000@gmail.com
-// Created	: lundi, march 20 2017
+// Created	: thursday, april 20 2017
 // Revised	:
 // Version	:
 // Target MCU	:
@@ -60,10 +60,10 @@ void construct_net(N& nn) {
     // const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
 
     nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
-       << pool(32, 32, n_fmaps2, 8)
+       << pool(32, 32, n_fmaps2, 16)
             // << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
             // << pool(8, 8, n_fmaps2, 2)
-       << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
+       << fully_connected_layer<activation::identity>(2 * 2 * n_fmaps2, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
 }
 
@@ -124,8 +124,8 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
     // test and show results
     nn.test(test_images, test_labels).print_detail(cout);
 
-    nn.save("test_exp.json", content_type::model, file_format::json);
-    nn.save("test_exp_weights.bin", content_type::weights, file_format::binary);
+    nn.save("post_exp.json", content_type::model, file_format::json);
+    nn.save("post_exp_weights.bin", content_type::weights, file_format::binary);
 
     // save networks
     ofstream ofs("ball_exp_weights");
@@ -135,9 +135,9 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
 int main(int argc, char **argv) {
     if (argc != 4) {
         cerr << "Usage : " << argv[0]
-             << " arg[0]: train_file"
-             << " arg[1]: test_file"
-             << " arg[2]: learning rate (example:0.01)" << endl;
+             << "arg[0]: train_file"
+             << "arg[1]: test_file"
+             << "arg[2]: learning rate (example:0.01)" << endl;
         return -1;
     }
     train_cifar(argv[1], argv[2],stod(argv[3]), cout);
