@@ -53,6 +53,6 @@
         - Try using a higher learning rate
   - Acceptable rates
     - Around 95% of recognition rate is the minimal acceptable value
-- MISSING: tune acceptation value
-  - Cost matrix for false positive and false negatives
-  - Automatical tuning of threshold for recognition
+- Tune acceptance_score
+  - Use binary analyze_acceptance_score to produce a csv file
+  - Use Rscript to plot the effect of acceptance_score on recognition rates
