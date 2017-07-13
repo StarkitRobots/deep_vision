@@ -40,7 +40,7 @@
       - Note: usually try to use a number equivalent to the number of positive generated images
       - create a repository generated/sample with the appropriate files
   - Generate training and validation set
-    - Run `python cifaren.py <positive_folder> <negative_folder> <file_name> nb_test_images`
+    - Run `python cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (1000)> <opt: size (32)>`
 - Train the neural network
   - ball_train_exp <...> (see message)
   - Learning rate need to be hand-tuned

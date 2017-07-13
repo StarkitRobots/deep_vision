@@ -89,7 +89,7 @@ static void parse_file(const std::string& filename,
     train_images->push_back(img);
     train_labels->push_back(label);
   }
-}
+r}
 
 
 template <typename N>
@@ -100,22 +100,69 @@ void construct_basic_net(N& nn,
     typedef convolutional_layer<activation::identity> conv;
     typedef max_pooling_layer<relu> pool;
 
-    const serial_size_t fc_grid_size = 2; /// number of columns in last layer
+    const serial_size_t kernel_size = 5;
+    const serial_size_t fc_grid_size = 4; /// number of columns in last layer
     const serial_size_t pooling_size = input_width / fc_grid_size;
-    const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
-    const serial_size_t n_fc = 256;      ///< number of hidden units in fully-connected layer
+    const serial_size_t n_fmaps = 16;   ///< number of feature maps for upper layer
+    const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
 
     // Some of the values can be determined automatically
     const serial_size_t fc_layer_input_dim =
       (input_width / pooling_size) * (input_height / pooling_size) * n_fmaps;
 
-    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
 
-    nn << conv(input_width, input_height, 5, input_depth, n_fmaps, padding::same)
+    int convol_size = kernel_size * kernel_size * input_depth * n_fmaps;
+    int fc_size = fc_layer_input_dim * n_fc;
+
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in convolution layer    : " << convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+
+    nn << conv(input_width, input_height, kernel_size, input_depth, n_fmaps, padding::same)
        << pool(input_width, input_height, n_fmaps, pooling_size)
        << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
        << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
 }
+
+template <typename N>
+void construct_2layers_net(N& nn,
+                           int input_width,
+                           int input_height,
+                           int input_depth) {
+    typedef convolutional_layer<activation::identity> conv;
+    typedef max_pooling_layer<relu> pool;
+
+    const serial_size_t kernel1_size = 5; /// kernel1
+    const serial_size_t kernel2_size = 5; /// kernel2
+    const serial_size_t pooling1 = 2;     /// pooling ratio from upper to lower layer
+    const serial_size_t pooling2 = 2;     /// pooling ratio from lower layer to fully-connected
+    const serial_size_t n_fmaps1 = 16;     /// number of feature maps for upper layer
+    const serial_size_t n_fmaps2 = 4;     /// number of feature maps for lower layer
+    const serial_size_t n_fc = 8;         /// number of hidden units in fully-connected layer
+
+    // Some of the values can be determined automatically
+    const serial_size_t layer2_width  = input_width / pooling1;
+    const serial_size_t layer2_height = input_height / pooling1;
+    const serial_size_t fc_layer_input_dim =
+      (layer2_width / pooling2) * (layer2_height / pooling2) * n_fmaps2;
+
+    int first_convol_size = kernel1_size * kernel1_size * input_depth * n_fmaps1;
+    int second_convol_size = kernel2_size * kernel2_size * n_fmaps1 * n_fmaps2;
+    int fc_size = fc_layer_input_dim * n_fc;
+
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in 1st convolution layer: " << first_convol_size << std::endl;
+    std::cout << "parameters in 2nd convolution layer: " << second_convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+
+    nn << conv(input_width, input_height, kernel1_size, input_depth, n_fmaps1, padding::same)
+       << pool(input_width, input_height, n_fmaps1, pooling1)
+       << conv(layer2_width, layer2_height, kernel2_size, n_fmaps1, n_fmaps2, padding::same)
+       << pool(layer2_width, layer2_height, n_fmaps2, pooling2)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
+       << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
+}
+
 
 template <typename N>
 void construct_net(N& nn) {

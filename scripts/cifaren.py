@@ -78,6 +78,49 @@ def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h):
     dataout =  np.array(dataout, np.uint8)
     dataout.tofile(outfile)
 
+# In this version, the same number of pos and neg are used for tests
+def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h):
+    pos_data_dict = {}
+    neg_data_dict = {}
+    data_dict = {}
+    for file in os.listdir(positive_dir):
+        if file.endswith(".png"):
+            # print('Positive ' + file)
+            pos_data_dict[positive_dir + '/' + file] = 1
+            data_dict[positive_dir + '/' + file] = 1
+
+    for file in os.listdir(negative_dir):
+        if file.endswith(".png"):
+            # print('Negative ' + file)
+            neg_data_dict[negative_dir + '/' +  file] = 0
+            data_dict[negative_dir + '/' + file] = 0
+
+    pos_keys = list(pos_data_dict.keys())
+    np.random.shuffle(pos_keys)
+    neg_keys = list(neg_data_dict.keys())
+    np.random.shuffle(neg_keys)
+
+    test_keys = pos_keys[:nbtest/2] + neg_keys[:nbtest/2]
+    learning_keys = pos_keys[nbtest/2:] + neg_keys[nbtest/2:]
+    np.random.shuffle(test_keys)
+    np.random.shuffle(learning_keys)
+
+    dataout = []
+
+    # tests
+    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in test_keys]
+    dataout = np.concatenate(dataout, axis=0)
+    # print(dataout)
+    dataout =  np.array(dataout, np.uint8)
+    dataout.tofile('test_' + outfile)
+
+    dataout = []
+    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in learning_keys]
+    dataout = np.concatenate(dataout, axis=0)
+    # print(dataout)
+    dataout =  np.array(dataout, np.uint8)
+    dataout.tofile(outfile)
+
 if __name__ == '__main__':
     if (len(sys.argv) <= 4):
         print("Usage: <positive_directory> <negative_directory> <output_file> <opt: nb_tests> <opt: size>")
@@ -90,4 +133,4 @@ if __name__ == '__main__':
         size = int(sys.argv[5])
     print ("Using " + str(nb_tests) + " tests and size " + str(size) + "x" + str(size))
     # positive_dir negative_dir outputfile
-    to_cifar(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, size, size)
+    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, size, size)
