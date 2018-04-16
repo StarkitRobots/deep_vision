@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>deep_vision</name>
+  <version>0.0.0</version>
+  <description>A simple package to train neural networks
+  </description>
+  <maintainer email="snguyen@labri.fr">Steve N'guyen</maintainer>
+  <maintainer email="lhofer@labri.fr">Ludovic Hofer</maintainer>
+
+  <license>MIT</license>
+
+  <author email="snguyen@labri.fr">Steve N'guyen</author>
+  <author email="lhofer@labri.fr">Ludovic Hofer</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>tiny-dnn</build_depend> <!-- rhobandeps/tiny-dnn.git -->
+
+  <run_depend>tiny-dnn</run_depend>
+
+</package>

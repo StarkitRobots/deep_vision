@@ -89,7 +89,7 @@ static void parse_file(const std::string& filename,
     train_images->push_back(img);
     train_labels->push_back(label);
   }
-r}
+}
 
 
 template <typename N>

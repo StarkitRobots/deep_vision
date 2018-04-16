@@ -8,9 +8,17 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 # Set variables:
 #   * PROJECT_NAME
 #   * PROJECT_VERSION
-project(deepvision VERSION 1.0.0 LANGUAGES C CXX)
+project(deep_vision VERSION 1.0.0 LANGUAGES C CXX)
 
+
+find_package(catkin REQUIRED COMPONENTS
+  tiny-dnn)
 find_package( OpenCV REQUIRED )
+
+
+catkin_package(
+  CATKIN_DEPENDS tiny-dnn
+)
 
 #####
 # Enables link_directories() treat paths relative
@@ -61,6 +69,8 @@ option(USE_DOUBLE     "Build tiny-dnn with double precision computations"  OFF)
 
 ####
 # Create the library target
+
+include_directories(${catkin_INCLUDE_DIRS})
 
 set(project_library_target_name ${PROJECT_NAME})
 set(PACKAGE_NAME TinyDNN)
