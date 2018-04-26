@@ -11,8 +11,8 @@ feature_name=$1
 zip_file=$2
 
 img_path=Images/${feature_name}
-pos_path=${img_path}/positive
-neg_path=${img_path}/negative
+pos_path=${img_path}/positive/
+neg_path=${img_path}/negative/
 
 rm -rf $img_path
 unzip $zip_file
