@@ -101,9 +101,9 @@ void construct_basic_net(N& nn,
     typedef max_pooling_layer<relu> pool;
 
     const serial_size_t kernel_size = 5;
-    const serial_size_t fc_grid_size = 4; /// number of columns in last layer
+    const serial_size_t fc_grid_size = 2; /// number of columns in last layer
     const serial_size_t pooling_size = input_width / fc_grid_size;
-    const serial_size_t n_fmaps = 16;   ///< number of feature maps for upper layer
+    const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
     const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
 
     // Some of the values can be determined automatically

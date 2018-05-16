@@ -29,4 +29,4 @@ if __name__ == '__main__':
 
         for b in balls:
             shutil.move(
-                base + '/' + b + ".png", base + "/positive/" + b + ".png")
+                base + '/' + b, base + "/positive/" + b)
