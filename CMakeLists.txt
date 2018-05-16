@@ -1,13 +1,5 @@
-####
-# Set minimum version of CMake. Since command 'project' use
-# VERSION sub-option we need at least 3.0.
-# Note: If you use 2.6 or 2.4, God kills a kitten. Seriously.
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
-####
-# Set variables:
-#   * PROJECT_NAME
-#   * PROJECT_VERSION
 project(deep_vision VERSION 1.0.0 LANGUAGES C CXX)
 
 
@@ -32,26 +24,6 @@ endif(POLICY CMP0015)
 if(POLICY CMP0048)
     cmake_policy(SET CMP0048 NEW)
 endif(POLICY CMP0048)
-
-#####
-# Change the default build type from Debug to Release, while still
-# supporting overriding the build type.
-#
-# The CACHE STRING logic here and elsewhere is needed to force CMake
-# to pay attention to the value of these variables.
-if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type specified; defaulting to CMAKE_BUILD_TYPE=Release.")
-    set(CMAKE_BUILD_TYPE Release CACHE STRING
-        "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-        FORCE)
-else(NOT CMAKE_BUILD_TYPE)
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        message("==========================================================================================")
-        message(STATUS "Build type: Debug. Performance will be terrible!")
-        message(STATUS "Add -DCMAKE_BUILD_TYPE=Release to the CMake command line to get an optimized build.")
-        message("==========================================================================================")
-    endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-endif(NOT CMAKE_BUILD_TYPE)
 
 ####
 # Define user options
@@ -265,7 +237,11 @@ set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} ${EXTRA_C_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${EXTRA_C_FLAGS_RELEASE}")
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_C_FLAGS_DEBUG}")
 
-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${HELLO_BINARY_DIR}../../bin/")
-
 include_directories(tiny-dnn)
-add_subdirectory(src)
+#add_subdirectory(src)
+
+add_executable (dnn_trainer src/dnn_trainer.cpp)
+target_link_libraries(dnn_trainer ${OpenCV_LIBS})
+
+add_executable (analyze_acceptance_score src/analyze_acceptance_score.cpp)
+target_link_libraries(analyze_acceptance_score ${OpenCV_LIBS})

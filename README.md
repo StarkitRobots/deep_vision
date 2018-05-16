@@ -2,47 +2,26 @@
 
 ### What is this repository for? ###
 
-* Experimenting vision with deep learning
+* Training lightweight neural networks for RoboCup
 
 ### How do I get set up? ###
 
-* Requires tiny-dnn https://github.com/tiny-dnn/tiny-dnn (submodule) and OpenCV
-* git submodule init
-* git submodule update
-* mkdir build
-* cd build
-* cmake ..
-* make
-
-* WARNING! Make sure tiny-dnn is in a release version (currently tag v1.0.0a3)
-
-### TODOs ###
-
-* test avec rotation de l'img 90 deg à droite
-* test goals (ball et goal dans des nn séparés?)
+* This repository uses catkin and a fixed version of tiny-dnn (github.com/rhobandeps/tiny-dnn)
 
 ### Training procedure ###
 
-- Download and extract data from Tagger
+- Download and extract data from Tagger (rhoban
 - Prepare data
-  - Folder will contain all Images in the same folder
-  - Sort is performed through python scripts
-    - Create folder 'positive' in Balls (resp. Goals)
-    - Run `python get_from_json.py <.../data.json>`
-      - Positive files are moved to positive folder
-  - Generated additional data
-    - Run `python add_noise.py Balls/<positive_folder>`
-      - Generate new data in Balls/positive/generated
-    - Run `python add_noise.py Balls/`
-      - Generate new data in Balls/generated 
-  - Filter negatives
-    - Run `python get_n_random.py Balls/generated <nb_images>`
+  - Use `scripts/prepare_data.sh <Balls/Goals/Robots> <zip_file>
+  - Filter negatives (optional)
+    - Run `python scripts/get_n_random.py Balls/negative/generated <nb_images>`
       - Note: usually try to use a number equivalent to the number of positive generated images
-      - create a repository generated/sample with the appropriate files
+      - Creates a repository `Balls/negative/generated/sample` with the appropriate files
   - Generate training and validation set
-    - Run `python cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (1000)> <opt: size (32)>`
+    - Run `python scripts/cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (1000)> <opt: size (16)>`
 - Train the neural network
-  - ball_train_exp <...> (see message)
+  - Use `dnn_trainer` produced by compilation (see help message for arguments)
+    - Structure of the neural network can be changed in code
   - Learning rate need to be hand-tuned
     - How to tune
       - If the recognition rate falls suddenly:
@@ -55,4 +34,4 @@
     - Around 95% of recognition rate is the minimal acceptable value
 - Tune acceptance_score
   - Use binary analyze_acceptance_score to produce a csv file
-  - Use Rscript to plot the effect of acceptance_score on recognition rates
+  - Use `Rscript  to plot the effect of acceptance_score on recognition rates
