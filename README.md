@@ -18,32 +18,34 @@
 
 ### TODOs ###
 
-* test avec rotation de l'img 90 deg à droite
-* test goals (ball et goal dans des nn séparés?)
+* Améliorer le set de validation :
+  - prendre des logs différents pour le jeu de validation
+  - choisir le set de validation avant de générer
+  - choisir aléatoirement le set de validation à chaque étape pour ne pas overfitter sur un set de validation
+* Change imges EY (input_depth)
+* Mettre dans un json les options des réseaux de neurones
+* Tune hyperparameter automatically :
+  - learning rate
+  - 
 
 ### Training procedure ###
 
 - Download and extract data from Tagger
-- Prepare data
-  - Folder will contain all Images in the same folder
-  - Sort is performed through python scripts
-    - Create folder 'positive' in Balls (resp. Goals)
-    - Run `python get_from_json.py <.../data.json>`
-      - Positive files are moved to positive folder
-  - Generated additional data
-    - Run `python add_noise.py Balls/<positive_folder>`
-      - Generate new data in Balls/positive/generated
-    - Run `python add_noise.py Balls/`
-      - Generate new data in Balls/generated 
-  - Filter negatives
+- Prepare data :
+  - run .../script/prepare_date.sh <Balls|Goals|Robots> <data.zip>
+  - Filter negatives (optional)
     - Run `python get_n_random.py Balls/generated <nb_images>`
       - Note: usually try to use a number equivalent to the number of positive generated images
       - create a repository generated/sample with the appropriate files
   - Generate training and validation set
-    - Run `python cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (1000)> <opt: size (32)>`
+    - Run `python cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (~10% of the images)> <opt: size (16|32)>`
+      - Note: If the after generation there is significantly more negative images than positive images, do not use generated negative images.
 - Train the neural network
   - ball_train_exp <...> (see message)
-  - Learning rate need to be hand-tuned
+     - Note: change input_width and input_height (16|32)
+  - Modify the used nn (optional)
+     - ball_train_exp.cpp : contruct_* functions
+  - Learning rate need to be hand-tuned (~0.01)
     - How to tune
       - If the recognition rate falls suddenly:
         - System has overfitted
