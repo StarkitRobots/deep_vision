@@ -15,7 +15,9 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>tiny-dnn</build_depend> <!-- rhobandeps/tiny-dnn.git -->
+  <build_depend>rhoban_utils</build_depend> <!-- rhoban/utils.git -->
 
   <run_depend>tiny-dnn</run_depend>
+  <run_depend>rhoban_utils</run_depend>
 
 </package>

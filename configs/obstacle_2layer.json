@@ -1,0 +1,19 @@
+{
+    "class name" : "TwoLayersBuilder",
+    "content" : {
+        "input" : {
+            "width" : 16,
+            "height" : 32,
+            "depth" : 1
+        },
+        "kernel1_size" : 3,
+        "kernel2_size" : 3,
+        "nb_features1" : 8,
+        "nb_features2" : 4,
+        "grid1_x" : 4,
+        "grid1_y" : 8,
+        "grid2_x" : 2,
+        "grid2_y" : 4,
+        "fc_units" : 4
+    }
+}

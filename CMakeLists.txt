@@ -4,12 +4,12 @@ project(deep_vision VERSION 1.0.0 LANGUAGES C CXX)
 
 
 find_package(catkin REQUIRED COMPONENTS
-  tiny-dnn)
+  tiny-dnn rhoban_utils)
 find_package( OpenCV REQUIRED )
 
 
 catkin_package(
-  CATKIN_DEPENDS tiny-dnn
+  CATKIN_DEPENDS tiny-dnn rhoban_utils
 )
 
 #####
@@ -241,7 +241,7 @@ include_directories(tiny-dnn)
 #add_subdirectory(src)
 
 add_executable (dnn_trainer src/dnn_trainer.cpp)
-target_link_libraries(dnn_trainer ${OpenCV_LIBS})
+target_link_libraries(dnn_trainer ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable (analyze_acceptance_score src/analyze_acceptance_score.cpp)
-target_link_libraries(analyze_acceptance_score ${OpenCV_LIBS})
+target_link_libraries(analyze_acceptance_score ${catkin_LIBRARIES}  ${OpenCV_LIBS})

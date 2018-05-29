@@ -1,0 +1,15 @@
+{
+    "class name" : "OneLayerBuilder",
+    "content" : {
+        "input" : {
+            "width" : 16,
+            "height" : 32,
+            "depth" : 1
+        },
+        "kernel_size" : 5,
+        "nb_features" : 8,
+        "grid_x" : 2,
+        "grid_y" : 4,
+        "fc_units" : 8
+    }
+}

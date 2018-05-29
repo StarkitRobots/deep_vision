@@ -17,7 +17,8 @@
 //*****************************************************************************
 
 
-
+#include <rhoban_utils/serialization/factory.h>
+#include <rhoban_utils/util.h>
 
 #include <iostream>
 #include <vector>
@@ -25,12 +26,213 @@
 #include <string>
 #include <cmath>
 
-// #define CNN_TASK_SIZE 8
-
-
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
+
+
+//typedef convolutional_layer<activation::identity> conv;
+typedef max_pooling_layer<relu> pool;
+
+
+class InputConfig : public rhoban_utils::JsonSerializable {
+public:
+
+  int width;
+  int height;
+  int depth;
+
+  InputConfig() : width(32), height(32), depth(3) {}
+  InputConfig(const InputConfig & other)
+    : width(other.width), height(other.height), depth(other.depth) {}
+  ~InputConfig() {}
+
+  Json::Value toJson() const override{
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  void fromJson(const Json::Value & v, const std::string & dir_path) override{
+    width  = rhoban_utils::read<int>(v, "width" );
+    height = rhoban_utils::read<int>(v, "height");
+    depth  = rhoban_utils::read<int>(v, "depth" );
+  }
+
+  std::string getClassName() const override{
+    return "InputConfig";
+  }
+};
+
+class NNBuilder : public rhoban_utils::JsonSerializable  {
+public:
+  /// Input of the neural network
+  InputConfig input;
+
+  /// Build a neural network according to inner configuration
+  virtual network<sequential> buildNN() const = 0;
+
+  virtual void fromJson(const Json::Value & v, const std::string & path) {
+    input.read(v, "input", path);
+  }
+};
+
+class OneLayerBuilder : public NNBuilder {
+public:
+  /// The size of the kernel in conv layer
+  int kernel_size;
+
+  /// The number of features in conv layer
+  int nb_features;
+  
+  /// The number of columns after pooling
+  int grid_x;
+  /// The number of lines after pooling
+  int grid_y;
+
+  /// The number of units in fully-connected layer
+  int fc_units;
+
+  OneLayerBuilder() : kernel_size(5), nb_features(16), grid_x(2), grid_y(2), fc_units(16) {}
+  virtual ~OneLayerBuilder() {}
+
+  network<sequential> buildNN() const override {
+    network<sequential> nn;
+
+    const serial_size_t pooling_x = input.width / grid_x;
+    const serial_size_t pooling_y = input.height / grid_y;
+
+    int convol_size = kernel_size * kernel_size * input.depth * nb_features;
+    const serial_size_t fc_layer_input_dim = grid_x * grid_y * nb_features;
+    int fc_size = fc_layer_input_dim * fc_units;
+
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in convolution layer    : " << convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+
+    nn << conv<identity>(input.width, input.height, kernel_size, input.depth, nb_features, padding::same)
+       << pool(input.width, input.height, nb_features, pooling_x, pooling_y, pooling_x, pooling_y)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
+       << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
+    return nn;
+  }
+
+  Json::Value toJson() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  void fromJson(const Json::Value & v, const std::string & dir_path) {
+    NNBuilder::fromJson(v, dir_path);
+    rhoban_utils::tryRead(v, "kernel_size", &kernel_size);
+    rhoban_utils::tryRead(v, "nb_features", &nb_features);
+    rhoban_utils::tryRead(v, "grid_x"     , &grid_x);
+    rhoban_utils::tryRead(v, "grid_y"     , &grid_y);
+    rhoban_utils::tryRead(v, "fc_units"   , &fc_units);
+  }
+
+  std::string getClassName() const {
+    return "OneLayerBuilder";
+  }
+};
+
+class TwoLayersBuilder : public NNBuilder {
+public:
+  /// The size of the kernel in the 1st conv layer
+  int kernel1_size;
+
+  /// The size of the kernel in the 2nd conv layer
+  int kernel2_size;
+
+  /// The number of features in 1st conv layer
+  int nb_features1;
+
+  /// The number of features in 2nd conv layer
+  int nb_features2;
+  
+  /// The number of columns after 1st pooling
+  int grid1_x;
+  /// The number of lines after 1st pooling
+  int grid1_y;
+  
+  /// The number of columns after 2nd pooling
+  int grid2_x;
+  /// The number of lines after 2nd pooling
+  int grid2_y;
+
+  /// The number of units in fully-connected layer
+  int fc_units;
+
+  TwoLayersBuilder()
+    : kernel1_size(3), kernel2_size(3),
+      nb_features1(8), nb_features2(8),
+      grid1_x(2), grid1_y(2),
+      grid2_x(2), grid2_y(2),
+      fc_units(16)
+    {}
+
+  virtual ~TwoLayersBuilder() {}
+
+  network<sequential> buildNN() const override {
+    network<sequential> nn;
+
+    const serial_size_t pooling1_x = input.width / grid1_x;
+    const serial_size_t pooling1_y = input.height / grid1_y;
+    const serial_size_t pooling2_x = grid1_x / grid2_x;
+    const serial_size_t pooling2_y = grid1_y / grid2_y;
+
+    const serial_size_t fc_layer_input_dim = grid2_x * grid2_y * nb_features2;
+
+    int first_convol_size = kernel1_size * kernel1_size * input.depth * nb_features1;
+    int second_convol_size = kernel2_size * kernel2_size * nb_features1 * nb_features2;
+    int fc_size = fc_layer_input_dim * fc_units;
+
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in 1st convolution layer: " << first_convol_size << std::endl;
+    std::cout << "parameters in 2nd convolution layer: " << second_convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+
+    nn << conv<identity>(input.width, input.height, kernel1_size, input.depth,
+                         nb_features1, padding::same)
+       << pool(input.width, input.height, nb_features1,
+               pooling1_x, pooling1_y, pooling1_x, pooling1_y)
+       << conv<identity>(grid1_x, grid1_y, kernel2_size, nb_features1, nb_features2, padding::same)
+       << pool(grid1_x, grid1_y, nb_features2,
+               pooling2_x, pooling2_y, pooling2_x, pooling2_y)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
+       << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
+    return nn;
+  }
+
+
+  Json::Value toJson() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  void fromJson(const Json::Value & v, const std::string & dir_path) {
+    NNBuilder::fromJson(v, dir_path);
+    rhoban_utils::tryRead(v, "kernel1_size", &kernel1_size);
+    rhoban_utils::tryRead(v, "kernel2_size", &kernel2_size);
+    rhoban_utils::tryRead(v, "nb_features1", &nb_features1);
+    rhoban_utils::tryRead(v, "nb_features2", &nb_features2);
+    rhoban_utils::tryRead(v, "grid1_x"     , &grid1_x);
+    rhoban_utils::tryRead(v, "grid1_y"     , &grid1_y);
+    rhoban_utils::tryRead(v, "grid2_x"     , &grid2_x);
+    rhoban_utils::tryRead(v, "grid2_y"     , &grid2_y);
+    rhoban_utils::tryRead(v, "fc_units"    , &fc_units);
+  }
+
+  std::string getClassName() const {
+    return "TwoLayersBuilder";
+  }
+};
+
+class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
+public:
+  NNBuilderFactory() {
+    registerBuilder("OneLayerBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
+    registerBuilder("TwoLayersBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
+  }
+};
 
 static void parse_file(const std::string& filename,
                        std::vector<vec_t> *train_images,
@@ -91,127 +293,18 @@ static void parse_file(const std::string& filename,
   }
 }
 
-
-template <typename N>
-void construct_basic_net(N& nn,
-                         int input_width,
-                         int input_height,
-                         int input_depth) {
-    typedef convolutional_layer<activation::identity> conv;
-    typedef max_pooling_layer<relu> pool;
-
-    const serial_size_t kernel_size = 5;
-    const serial_size_t fc_grid_size = 2; /// number of columns in last layer
-    const serial_size_t pooling_size = input_width / fc_grid_size;
-    const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
-    const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
-
-    // Some of the values can be determined automatically
-    const serial_size_t fc_layer_input_dim =
-      (input_width / pooling_size) * (input_height / pooling_size) * n_fmaps;
-
-
-    int convol_size = kernel_size * kernel_size * input_depth * n_fmaps;
-    int fc_size = fc_layer_input_dim * n_fc;
-
-    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
-    std::cout << "parameters in convolution layer    : " << convol_size << std::endl;
-    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
-
-    nn << conv(input_width, input_height, kernel_size, input_depth, n_fmaps, padding::same)
-       << pool(input_width, input_height, n_fmaps, pooling_size)
-       << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
-       << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
-}
-
-template <typename N>
-void construct_2layers_net(N& nn,
-                           int input_width,
-                           int input_height,
-                           int input_depth) {
-    typedef convolutional_layer<activation::identity> conv;
-    typedef max_pooling_layer<relu> pool;
-
-    const serial_size_t kernel1_size = 5; /// kernel1
-    const serial_size_t kernel2_size = 5; /// kernel2
-    const serial_size_t pooling1 = 2;     /// pooling ratio from upper to lower layer
-    const serial_size_t pooling2 = 2;     /// pooling ratio from lower layer to fully-connected
-    const serial_size_t n_fmaps1 = 16;     /// number of feature maps for upper layer
-    const serial_size_t n_fmaps2 = 4;     /// number of feature maps for lower layer
-    const serial_size_t n_fc = 8;         /// number of hidden units in fully-connected layer
-
-    // Some of the values can be determined automatically
-    const serial_size_t layer2_width  = input_width / pooling1;
-    const serial_size_t layer2_height = input_height / pooling1;
-    const serial_size_t fc_layer_input_dim =
-      (layer2_width / pooling2) * (layer2_height / pooling2) * n_fmaps2;
-
-    int first_convol_size = kernel1_size * kernel1_size * input_depth * n_fmaps1;
-    int second_convol_size = kernel2_size * kernel2_size * n_fmaps1 * n_fmaps2;
-    int fc_size = fc_layer_input_dim * n_fc;
-
-    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
-    std::cout << "parameters in 1st convolution layer: " << first_convol_size << std::endl;
-    std::cout << "parameters in 2nd convolution layer: " << second_convol_size << std::endl;
-    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
-
-    nn << conv(input_width, input_height, kernel1_size, input_depth, n_fmaps1, padding::same)
-       << pool(input_width, input_height, n_fmaps1, pooling1)
-       << conv(layer2_width, layer2_height, kernel2_size, n_fmaps1, n_fmaps2, padding::same)
-       << pool(layer2_width, layer2_height, n_fmaps2, pooling2)
-       << fully_connected_layer<activation::identity>(fc_layer_input_dim, n_fc)
-       << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
-}
-
-
-template <typename N>
-void construct_net(N& nn) {
-    typedef convolutional_layer<activation::identity> conv;
-    typedef max_pooling_layer<relu> pool;
-
-    //good but too slow
-    // const serial_size_t n_fmaps = 64;   ///< number of feature maps for upper layer
-    // const serial_size_t n_fmaps2 = 64;  ///< number of feature maps for lower layer
-    // const serial_size_t n_fc = 64;      ///< number of hidden units in fully-connected layer
-
-    // nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
-    //    << pool(32, 32, n_fmaps, 2)
-    //    << conv(16, 16, 5, n_fmaps, n_fmaps, padding::same)
-    //    << pool(16, 16, n_fmaps, 2)
-    //    << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
-    //    << pool(8, 8, n_fmaps2, 2)
-    //    << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
-    //    << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
-
-    const serial_size_t n_fmaps = 32;   ///< number of feature maps for upper layer
-    const serial_size_t n_fmaps2 = 32;  ///< number of feature maps for lower layer
-    const serial_size_t n_fc = 32;      ///< number of hidden units in fully-connected layer
-
-    // const serial_size_t n_fmaps = 16;   ///< number of feature maps for upper layer
-    // const serial_size_t n_fmaps2 = 16;  ///< number of feature maps for lower layer
-    // const serial_size_t n_fc = 16;      ///< number of hidden units in fully-connected layer
-
-    nn << conv(32, 32, 5, 3, n_fmaps, padding::same)
-       << pool(32, 32, n_fmaps2, 8)
-            // << conv(8, 8, 5, n_fmaps, n_fmaps2, padding::same)
-            // << pool(8, 8, n_fmaps2, 2)
-       << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps2, n_fc)
-       << fully_connected_layer<softmax>(n_fc, 2); //2 classes output
-}
-
-void train_cifar(string data_train, string data_test,double learning_rate, ostream& log) {
-    // image size
-    int input_width = 16;
-    int input_height = 16;
-    int input_depth = 3;
-
+void train_cifar(string data_train, string data_test, string nn_config,
+                 double learning_rate, ostream& log) {
     // specify loss-function and learning strategy
-    network<sequential> nn;
+    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().buildFromJsonFile(nn_config);
+    network<sequential> nn = nn_builder->buildNN();
     adam optimizer;
 
-    construct_basic_net(nn, input_width, input_height, input_depth);
+    InputConfig input = nn_builder->input;
 
     log << "learning rate:" << learning_rate << endl;
+
+    cout << "Input: " << input.width << "x" << input.height << "x" << input.depth << std::endl;
 
     cout << "load models..." << endl;
 
@@ -222,11 +315,11 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
 
     parse_file(data_train,
                &train_images, &train_labels, -1.0, 1.0, 0, 0,
-               input_width, input_height, input_depth);
+               input.width, input.height, input.depth);
 
     parse_file(data_test,
                &test_images, &test_labels, -1.0, 1.0, 0, 0,
-               input_width, input_height, input_depth);
+               input.width, input.height, input.depth);
 
     cout << "start learning" << endl;
 
@@ -272,12 +365,13 @@ void train_cifar(string data_train, string data_test,double learning_rate, ostre
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
+    if (argc != 5) {
       cerr << "Usage : " << argv[0] << endl
            << " arg[0]: train_file " << endl
            << " arg[1]: test_file " << endl
-           << " arg[2]: learning rate (example:0.01)" << endl;
+           << " arg[2]: NN config file" << endl
+           << " arg[3]: learning rate (example:0.01)" << endl;
         return -1;
     }
-    train_cifar(argv[1], argv[2],stod(argv[3]), cout);
+    train_cifar(argv[1], argv[2], argv[3], stod(argv[4]), cout);
 }

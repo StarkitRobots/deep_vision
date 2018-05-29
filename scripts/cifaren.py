@@ -29,20 +29,25 @@ import numpy as np
 import cv2
 import os
 
+#mode="BGR"
+mode="Y"
 
 def to_bin(filename, label, w, h):
     im = cv2.imread(filename)
     print(filename)
-    # cv2.imshow('orig', im)
     res = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA)
-    # cv2.imshow('resize', res)
-    # cv2.waitKey()
-    im = (np.array(res))
-    r = im[:,:, 0].flatten()
-    g = im[:,:, 1].flatten()
-    b = im[:,:, 2].flatten()
-
-    out = np.array(list((label, )) + list(r) + list(g) + list(b), np.uint8)
+    if mode == "BGR":
+        im = (np.array(res))
+        r = im[:,:, 0].flatten()
+        g = im[:,:, 1].flatten()
+        b = im[:,:, 2].flatten()
+        out = np.array(list((label, )) + list(r) + list(g) + list(b), np.uint8)
+    elif mode == "Y":
+        res = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
+        im = (np.array(res))
+        y = im[:,:].flatten()
+        out = np.array(list((label, )) + list(y), np.uint8)
+        
 
     return out
 
@@ -123,14 +128,18 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h):
 
 if __name__ == '__main__':
     if (len(sys.argv) <= 4):
-        print("Usage: <positive_directory> <negative_directory> <output_file> <opt: nb_tests> <opt: size>")
+        print("Usage: <positive_directory> <negative_directory> <output_file> <opt: nb_tests> <opt: width> <opt: height (default, same as width)>")
         exit()
     nb_tests = 1000
-    size = 32
+    width = 32
+    height = 32
     if (len(sys.argv) > 4):
         nb_tests = int(sys.argv[4])
     if (len(sys.argv) > 5):
-        size = int(sys.argv[5])
-    print ("Using " + str(nb_tests) + " tests and size " + str(size) + "x" + str(size))
+        width = int(sys.argv[5])
+        height = width
+    if (len(sys.argv) > 6):
+        height = int(sys.argv[6])
+    print ("Using " + str(nb_tests) + " tests and size " + str(width) + "x" + str(height))
     # positive_dir negative_dir outputfile
-    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, size, size)
+    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, width, height)
