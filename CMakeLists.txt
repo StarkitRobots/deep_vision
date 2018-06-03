@@ -245,3 +245,6 @@ target_link_libraries(dnn_trainer ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable (analyze_acceptance_score src/analyze_acceptance_score.cpp)
 target_link_libraries(analyze_acceptance_score ${catkin_LIBRARIES}  ${OpenCV_LIBS})
+
+add_executable(get_missclassifications src/get_missclassifications.cpp)
+target_link_libraries(get_missclassifications ${catkin_LIBRARIES}  ${OpenCV_LIBS})

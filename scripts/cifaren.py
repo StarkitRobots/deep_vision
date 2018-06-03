@@ -29,10 +29,7 @@ import numpy as np
 import cv2
 import os
 
-#mode="BGR"
-mode="Y"
-
-def to_bin(filename, label, w, h):
+def to_bin(filename, label, w, h, mode):
     im = cv2.imread(filename)
     print(filename)
     res = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA)
@@ -52,7 +49,7 @@ def to_bin(filename, label, w, h):
     return out
 
 
-def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h):
+def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
     data_dict = {}
     for file in os.listdir(positive_dir):
         if file.endswith(".png"):
@@ -70,21 +67,21 @@ def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h):
     dataout = []
 
     # tests
-    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in keys[:nbtest]]
+    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[:nbtest]]
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
     dataout.tofile('test_' + outfile)
 
     dataout = []
-    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in keys[nbtest:]]
+    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[nbtest:]]
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
     dataout.tofile(outfile)
 
 # In this version, the same number of pos and neg are used for tests
-def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h):
+def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
     pos_data_dict = {}
     neg_data_dict = {}
     data_dict = {}
@@ -113,14 +110,14 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h):
     dataout = []
 
     # tests
-    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in test_keys]
+    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in test_keys]
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
     dataout.tofile('test_' + outfile)
 
     dataout = []
-    [dataout.append(to_bin(k, data_dict[k], w, h)) for k in learning_keys]
+    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in learning_keys]
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
@@ -133,6 +130,7 @@ if __name__ == '__main__':
     nb_tests = 1000
     width = 32
     height = 32
+    mode = "BGR"
     if (len(sys.argv) > 4):
         nb_tests = int(sys.argv[4])
     if (len(sys.argv) > 5):
@@ -140,6 +138,8 @@ if __name__ == '__main__':
         height = width
     if (len(sys.argv) > 6):
         height = int(sys.argv[6])
+    if (len(sys.argv) > 7):
+        mode = sys.argv[7]
     print ("Using " + str(nb_tests) + " tests and size " + str(width) + "x" + str(height))
     # positive_dir negative_dir outputfile
-    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, width, height)
+    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, width, height, mode)
