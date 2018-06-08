@@ -45,7 +45,7 @@ if __name__ == '__main__':
     dirname = base + outname
 
     for image in files:
-        print image
+        #print image
         img = cv2.imread(image)
 
         # symmetry

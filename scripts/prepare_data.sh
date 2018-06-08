@@ -16,15 +16,21 @@ pos_path=${img_path}/positive/
 neg_path=${img_path}/negative/
 
 # Extract data to given folder
+print("Extracting")
 rm -rf $img_path
 mkdir -p ${img_path}
-unzip $zip_file -d -q ${img_path}
+unzip  -q -d ${img_path} $zip_file
 # Extracting positive images
+print("Moving positive images")
 mkdir $pos_path
 python ${scripts_path}/get_from_json.py ${img_path}/data.json
 # Moving negative images
+print("Moving negative images")
 mkdir $neg_path
 mv ${img_path}/*.png ${neg_path}
 # Adding noise
+print("Adding noise")
+print("Adding noise positives")
 python ${scripts_path}/add_noise.py ${pos_path}
+print("Adding noise negative")
 python ${scripts_path}/add_noise.py ${neg_path}
