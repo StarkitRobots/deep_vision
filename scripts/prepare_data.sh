@@ -18,7 +18,7 @@ neg_path=${img_path}/negative/
 # Extract data to given folder
 rm -rf $img_path
 mkdir -p ${img_path}
-unzip $zip_file -d ${img_path}
+unzip $zip_file -d -q ${img_path}
 # Extracting positive images
 mkdir $pos_path
 python ${scripts_path}/get_from_json.py ${img_path}/data.json
