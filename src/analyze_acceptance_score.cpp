@@ -158,7 +158,7 @@ void evaluateAcceptanceScore(network<sequential> &nn,
 
 int main(int argc, char** argv) {
   if (argc != 5) {
-    cout << "USAGE: ./predict ARCH.json WEIGHTS.bin <pos_dir> <neg_dir>"<<endl;
+    cout << "USAGE: ./analyze_acceptance_score ARCH.json WEIGHTS.bin <pos_dir> <neg_dir>"<<endl;
     return 0;
   }
 

@@ -136,6 +136,8 @@ void treatFiles(network<sequential> &nn, const vector<string> & file_paths,
     char filename[30];
     if(fp || fn) {
       cv::Mat img = cv::imread(file_path);
+      string cmd="mkdir -p missclassified";
+      system(cmd.c_str());
       sprintf(filename, "%s_%05d.png", fp ? "fp" : "fn", idx);
       cv::imwrite(filename, img);
       idx++;
@@ -145,7 +147,7 @@ void treatFiles(network<sequential> &nn, const vector<string> & file_paths,
 
 int main(int argc, char** argv) {
   if (argc != 6) {
-    cout << "USAGE: ./predict ARCH.json WEIGHTS.bin <pos_dir> <neg_dir> <acceptance_score>"<<endl;
+    cout << "USAGE: ./get_missclassifications ARCH.json WEIGHTS.bin <pos_dir> <neg_dir> <acceptance_score>"<<endl;
     return 0;
   }
 

@@ -125,7 +125,7 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
 
 if __name__ == '__main__':
     if (len(sys.argv) <= 4):
-        print("Usage: <positive_directory> <negative_directory> <output_file> <opt: nb_tests> <opt: width> <opt: height (default, same as width)>")
+        print("Usage: <positive_directory> <negative_directory> <output_prefix> <opt: nb_validation> <opt: width> <opt: height (default, same as width)> <opt: mode (BGR or Y)>")
         exit()
     nb_tests = 1000
     width = 32

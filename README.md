@@ -14,14 +14,13 @@
 - Prepare data
   - Use `scripts/prepare_data.sh <Balls/Goals/Robots> <zip_file>
   - Filter negatives (optional)
-    - Run `python scripts/get_n_random.py Balls/negative/generated <nb_images>`
-      - Note: usually try to use a number equivalent to the number of positive generated images
-      - Creates a repository `Balls/negative/generated/sample` with the appropriate files
   - Generate training and validation set
-    - Run `python scripts/cifaren.py <positive_folder> <negative_folder> <file_name> <opt: nb_test_images (1000)> <opt: size (16)>`
+    - Run `python scripts/cifaren.py <positive_folder> <negative_folder> <output_prefix> <opt: nb_validation_images (1000)> <opt: size (16)> <opt: mode (BGR or Y)>`
+      - nb_validation_image :: ~20% of the smaller category (usually the positive category)
 - Train the neural network
   - Use `dnn_trainer` produced by compilation (see help message for arguments)
     - Structure of the neural network can be changed in code
+    - Structure of the neural network is passed in a json file (look at configs/)
   - Learning rate need to be hand-tuned
     - How to tune
       - If the recognition rate falls suddenly:

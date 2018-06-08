@@ -356,12 +356,12 @@ void train_cifar(string data_train, string data_test, string nn_config,
     // test and show results
     nn.test(test_images, test_labels).print_detail(cout);
 
-    nn.save("test_exp.json", content_type::model, file_format::json);
-    nn.save("test_exp_weights.bin", content_type::weights, file_format::binary);
+    nn.save("dnn_architecture.json", content_type::model, file_format::json);
+    nn.save("dnn_weights.bin", content_type::weights, file_format::binary);
 
     // save networks
-    ofstream ofs("ball_exp_weights");
-    ofs << nn;
+    //ofstream ofs("ball_exp_weights");
+    //ofs << nn;
 }
 
 int main(int argc, char **argv) {
