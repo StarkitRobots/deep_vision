@@ -31,7 +31,7 @@ import os
 
 def to_bin(filename, label, w, h, mode):
     im = cv2.imread(filename)
-    print(filename)
+    #print(filename)
     res = cv2.resize(im, (w, h), interpolation=cv2.INTER_AREA)
     if mode == "BGR":
         im = (np.array(res))

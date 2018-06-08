@@ -32,5 +32,5 @@ mv ${img_path}/*.png ${neg_path}
 echo "Adding noise"
 echo "Adding noise positives"
 python ${scripts_path}/add_noise.py ${pos_path}
-echo "Adding noise negative"
-python ${scripts_path}/add_noise.py ${neg_path}
+#echo "Adding noise negative"
+#python ${scripts_path}/add_noise.py ${neg_path}
