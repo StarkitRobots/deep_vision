@@ -75,49 +75,6 @@ public:
   }
 };
 
-class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
-public:
-  NNBuilderFactory() {
-    registerBuilder("OneLayerBuilder",
-                    [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
-    registerBuilder("TwoLayersBuilder",
-                    [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
-  }
-};
-
-
-class Config : public rhoban_utils::JsonSerializable {
-public:
-  std::unique_ptr<NNBuilder> nnbuilder;
-  int nb_minibatch;
-  int nb_train_epochs;
-  double learning_rate_start;
-  double learning_rate_end;
-  double dichotomy_depth;
-
-  Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
-    learning_rate_end(0.05), dichotomy_depth(5) {}
-  Config(const Config & other)
-    : nb_minibatch(other.nb_minibatch), nb_train_epochs(other.nb_train_epochs),
-    learning_rate_start(other.learning_rate_start), learning_rate_end(other.learning_rate_end),
-    dichotomy_depth(other.dichotomy_depth) {}
-  ~Config() {}
-
-  Json::Value toJson() const override{
-    throw std::logic_error(DEBUG_INFO + " not implemented");
-  }
-
-  virtual void fromJson(const Json::Value & v, const std::string & path) {
-    Json::Value json_v;
-    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().build(json_v["network"], path);
-    nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
-    nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
-    learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
-    learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end" );
-    dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth" );
-  }
-};
-
 class OneLayerBuilder : public NNBuilder {
 public:
   /// The size of the kernel in conv layer
@@ -267,6 +224,52 @@ public:
   }
 };
 
+class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
+public:
+  NNBuilderFactory() {
+    registerBuilder("OneLayerBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
+    registerBuilder("TwoLayersBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
+  }
+};
+
+class Config : public rhoban_utils::JsonSerializable {
+public:
+  std::unique_ptr<NNBuilder> nnbuilder;
+  int nb_minibatch;
+  int nb_train_epochs;
+  double learning_rate_start;
+  double learning_rate_end;
+  double dichotomy_depth;
+
+  Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
+    learning_rate_end(0.05), dichotomy_depth(5) {}
+  Config(const Config & other)
+    : nb_minibatch(other.nb_minibatch), nb_train_epochs(other.nb_train_epochs),
+    learning_rate_start(other.learning_rate_start), learning_rate_end(other.learning_rate_end),
+    dichotomy_depth(other.dichotomy_depth) {}
+  ~Config() {}
+
+  std::string getClassName() const override {
+    return "DNNTrainerConfig";
+  }
+
+  Json::Value toJson() const override {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  virtual void fromJson(const Json::Value & v, const std::string & path) {
+    Json::Value json_v;
+    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().build(json_v["network"], path);
+    nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
+    nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
+    learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
+    learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end" );
+    dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth" );
+  }
+};
+
 static void parse_file(const std::string& filename,
                        std::vector<vec_t> *train_images,
                        std::vector<label_t> *train_labels,
@@ -333,8 +336,8 @@ double train_cifar(string data_train, string data_test, string nn_config,
     config.loadFile(nn_config);
     adam optimizer;
 
-    network<sequential> nn = config -> nnbuilder -> buildNN();
-    InputConfig input = config -> nnbuilder -> input;
+    network<sequential> nn = config.nnbuilder->buildNN();
+    InputConfig input = config.nnbuilder->input;
 
     log << "learning rate:" << learning_rate << endl;
 
@@ -358,7 +361,7 @@ double train_cifar(string data_train, string data_test, string nn_config,
 
     progress_display disp(train_images.size());
     timer t;
-    const int nb_minibatch = config.nb_minibatchi;     ///< minibatch size
+    const int nb_minibatch = config.nb_minibatch;     ///< minibatch size
     const int nb_train_epochs = config.nb_train_epochs;  ///< training duration
 
     optimizer.alpha *= static_cast<tiny_dnn::float_t>(sqrt(nb_minibatch) * learning_rate);
@@ -443,15 +446,13 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
 }
 
 int main(int argc, char **argv) {
-    if (argc != 7) {
-      cerr << "Usage : " << argv[0] << endl
-           << " arg[0]: train_file " << endl
-           << " arg[1]: test_file " << endl
-           << " arg[2]: NN config file" << endl
-        return -1;
+    if (argc != 4) {
+      cerr << "Usage : " << argv[0]
+           << " <train_file> <test_file> <nn_config_file>" << endl;
+      exit(EXIT_FAILURE);
    }
   Config config;
-  config.loadFile(nn_config);
+  config.loadFile(argv[3]);
 
   double learning_rate_start = config.learning_rate_start;
   double learning_rate_end = config.learning_rate_end;
