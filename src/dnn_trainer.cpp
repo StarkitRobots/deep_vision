@@ -393,7 +393,7 @@ double train_cifar(string data_train, string data_test, string nn_config,
     // training
     nn.train<cross_entropy>(optimizer, train_images, train_labels,
                             nb_minibatch, nb_train_epochs, on_enumerate_minibatch,
-                            on_enumerate_epoch);
+                            on_enumerate_epoch, true, 1);
 
     cout << "end training." << endl;
 
