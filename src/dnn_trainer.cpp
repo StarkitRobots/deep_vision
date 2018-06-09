@@ -260,8 +260,7 @@ public:
   }
 
   virtual void fromJson(const Json::Value & v, const std::string & path) {
-    Json::Value json_v;
-    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().build(json_v["network"], path);
+    nnbuilder =  NNBuilderFactory().read(v,"network", path);
     nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
     nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
     learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
