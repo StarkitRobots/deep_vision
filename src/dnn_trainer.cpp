@@ -75,6 +75,49 @@ public:
   }
 };
 
+class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
+public:
+  NNBuilderFactory() {
+    registerBuilder("OneLayerBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
+    registerBuilder("TwoLayersBuilder",
+                    [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
+  }
+};
+
+
+class Config : public rhoban_utils::JsonSerializable {
+public:
+  std::unique_ptr<NNBuilder> nnbuilder;
+  int nb_minibatch;
+  int nb_train_epochs;
+  double learning_rate_start;
+  double learning_rate_end;
+  double dichotomy_depth;
+
+  Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
+    learning_rate_end(0.05), dichotomy_depth(5) {}
+  Config(const Config & other)
+    : nb_minibatch(other.nb_minibatch), nb_train_epochs(other.nb_train_epochs),
+    learning_rate_start(other.learning_rate_start), learning_rate_end(other.learning_rate_end),
+    dichotomy_depth(other.dichotomy_depth) {}
+  ~Config() {}
+
+  Json::Value toJson() const override{
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  virtual void fromJson(const Json::Value & v, const std::string & path) {
+    Json::Value json_v;
+    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().build(json_v["network"], path);
+    nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
+    nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
+    learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
+    learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end" );
+    dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth" );
+  }
+};
+
 class OneLayerBuilder : public NNBuilder {
 public:
   /// The size of the kernel in conv layer
@@ -224,16 +267,6 @@ public:
   }
 };
 
-class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
-public:
-  NNBuilderFactory() {
-    registerBuilder("OneLayerBuilder",
-                    [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
-    registerBuilder("TwoLayersBuilder",
-                    [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
-  }
-};
-
 static void parse_file(const std::string& filename,
                        std::vector<vec_t> *train_images,
                        std::vector<label_t> *train_labels,
@@ -293,14 +326,15 @@ static void parse_file(const std::string& filename,
   }
 }
 
-void train_cifar(string data_train, string data_test, string nn_config,
+double train_cifar(string data_train, string data_test, string nn_config,
                  double learning_rate, ostream& log) {
     // specify loss-function and learning strategy
-    std::unique_ptr<NNBuilder> nn_builder =  NNBuilderFactory().buildFromJsonFile(nn_config);
-    network<sequential> nn = nn_builder->buildNN();
+    Config config;
+    config.loadFile(nn_config);
     adam optimizer;
 
-    InputConfig input = nn_builder->input;
+    network<sequential> nn = config -> nnbuilder -> buildNN();
+    InputConfig input = config -> nnbuilder -> input;
 
     log << "learning rate:" << learning_rate << endl;
 
@@ -311,7 +345,6 @@ void train_cifar(string data_train, string data_test, string nn_config,
     // load cifar dataset
     vector<label_t> train_labels, test_labels;
     vector<vec_t> train_images, test_images;
-
 
     parse_file(data_train,
                &train_images, &train_labels, -1.0, 1.0, 0, 0,
@@ -325,36 +358,49 @@ void train_cifar(string data_train, string data_test, string nn_config,
 
     progress_display disp(train_images.size());
     timer t;
-    const int n_minibatch = 10;     ///< minibatch size
-    const int n_train_epochs = 10;  ///< training duration
+    const int nb_minibatch = config.nb_minibatchi;     ///< minibatch size
+    const int nb_train_epochs = config.nb_train_epochs;  ///< training duration
 
-    optimizer.alpha *= static_cast<tiny_dnn::float_t>(sqrt(n_minibatch) * learning_rate);
+    optimizer.alpha *= static_cast<tiny_dnn::float_t>(sqrt(nb_minibatch) * learning_rate);
 
+    bool overfitting_flag=false;
     // create callback
     auto on_enumerate_epoch = [&]() {
         cout << t.elapsed() << "s elapsed." << endl;
         timer t1;
         tiny_dnn::result res = nn.test(test_images, test_labels);
         cout << t1.elapsed() << "s elapsed (test)." << endl;
-        log << res.num_success << "/" << res.num_total << " "<<(float)(res.num_success)/(float)(res.num_total)*100.0<<"%"<<endl;
+        float percentage = (float)(res.num_success)/(float)(res.num_total)*100.0;
+        log << res.num_success << "/" << res.num_total << " "<< percentage <<"%"<<endl;
 
+        if (percentage < 51.0){
+            cout << "Overfitting." << endl;
+            overfitting_flag=true;
+            return false;
+        }
         disp.restart(train_images.size());
         t.restart();
+        return true;
     };
 
     auto on_enumerate_minibatch = [&]() {
-        disp += n_minibatch;
+        disp += nb_minibatch;
     };
 
     // training
     nn.train<cross_entropy>(optimizer, train_images, train_labels,
-                            n_minibatch, n_train_epochs, on_enumerate_minibatch,
+                            nb_minibatch, nb_train_epochs, on_enumerate_minibatch,
                             on_enumerate_epoch);
 
     cout << "end training." << endl;
 
+    if (overfitting_flag == true){
+        return 0.0;
+    }
+
     // test and show results
-    nn.test(test_images, test_labels).print_detail(cout);
+    tiny_dnn::result res = nn.test(test_images, test_labels);
+    res.print_detail(cout);
 
     nn.save("dnn_architecture.json", content_type::model, file_format::json);
     nn.save("dnn_weights.bin", content_type::weights, file_format::binary);
@@ -362,16 +408,56 @@ void train_cifar(string data_train, string data_test, string nn_config,
     // save networks
     //ofstream ofs("ball_exp_weights");
     //ofs << nn;
+
+    return (float)(res.num_success)/(float)(res.num_total)*100.0;
+}
+
+void dichotomic_train_cifar(string data_train, string data_test, string nn_config,
+                 double learning_rate_start, double learning_rate_end, double dichotomy_depth, ofstream& results_file) {
+  // search is finished
+  if (dichotomy_depth < 0){
+    cout << "Search finished" << endl;
+    return;
+  }
+  cout << "Search depth: " << dichotomy_depth << endl;
+
+  // if learning_rate_start = learning_rate_end we stop searching
+  // independently of current dichotomy_depth
+  if (learning_rate_start == learning_rate_end){
+    dichotomy_depth=0;
+  }
+
+  // we try the middle learning rate
+  double learning_rate = (learning_rate_end + learning_rate_start)/2.0;
+  timer t;
+  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout);
+  if (validation_score > 0){
+    results_file << learning_rate << "," << setprecision (4) << validation_score << "," << t.elapsed() << std::endl;
+    learning_rate_start = learning_rate;
+  }
+  else{
+    results_file << learning_rate << "," << "overfit" << "," << t.elapsed() << std::endl;
+    learning_rate_end = learning_rate;
+  }
+  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file);
 }
 
 int main(int argc, char **argv) {
-    if (argc != 5) {
+    if (argc != 7) {
       cerr << "Usage : " << argv[0] << endl
            << " arg[0]: train_file " << endl
            << " arg[1]: test_file " << endl
            << " arg[2]: NN config file" << endl
-           << " arg[3]: learning rate (example:0.01)" << endl;
         return -1;
-    }
-    train_cifar(argv[1], argv[2], argv[3], stod(argv[4]), cout);
+   }
+  Config config;
+  config.loadFile(nn_config);
+
+  double learning_rate_start = config.learning_rate_start;
+  double learning_rate_end = config.learning_rate_end;
+  double dichotomy_depth = config.dichotomy_depth;
+
+  std::ofstream results_file("results.csv");
+  results_file << "learning_rate,validationScore,learning_time" << std::endl;
+  dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file);
 }
