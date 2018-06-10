@@ -457,25 +457,25 @@ int main(int argc, char **argv) {
   double learning_rate_end = config.learning_rate_end;
   double dichotomy_depth = config.dichotomy_depth;
   InputConfig input = config.nnbuilder->input;
-  std::unique_ptr<OneLayerBuilder> nnbuilder = config.nnbuilder;
+  std::unique_ptr<NNBuilder> nnbuilder = config.nnbuilder;
 
   std::ofstream results_file("results.csv");
-  results_file << "learning_rate,validationScore,learning_time_"
+  results_file << "learning_rate,validationScore,learning_time_input"
                << input.width
                << "x"
                << input.height
                << "x"
                << input.depth
-               //<< "_"
-               //<< nnbuilder->kernel_size
-               //<< "_"
-               //<< nnbuilder->nb_features
-               //<< "_"
-               //<< nnbuilder->grid_x
-               //<< "x"
-               //<< nnbuilder->grid_y
-               //<< "_"
-               //<< nnbuilder->fc_units
+               << "_kernerl"
+               << nnbuilder->kernel_size
+               << "_features"
+               << nnbuilder->nb_features
+               << "_grid"
+               << nnbuilder->grid_x
+               << "x"
+               << nnbuilder->grid_y
+               << "_fcunits"
+               << nnbuilder->fc_units
                << std::endl;
   dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file);
 }
