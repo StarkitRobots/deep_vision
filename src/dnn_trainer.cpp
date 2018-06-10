@@ -389,7 +389,7 @@ double train_cifar(string data_train, string data_test, string nn_config,
         float percentage = (float)(res.num_success)/(float)(res.num_total)*100.0;
         log << res.num_success << "/" << res.num_total << " "<< percentage <<"%"<<endl;
 
-        if (percentage < 51.0){
+        if (percentage == 50.0){
             cout << "Overfitting." << endl;
             overfitting_flag=true;
             return false;
@@ -475,7 +475,7 @@ int main(int argc, char **argv) {
 
   std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + config.nnbuilder->toString() + ".csv";
   std::ofstream results_file(file);
-  results_file << "learning_rate,validationScore,learning_time_input";
+  results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
 
   dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config);
 }
