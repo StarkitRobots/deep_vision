@@ -73,155 +73,167 @@ public:
   virtual void fromJson(const Json::Value & v, const std::string & path) {
     input.read(v, "input", path);
   }
+
+  virtual std::string toString() const = 0;
 };
 
 class OneLayerBuilder : public NNBuilder {
 public:
-/// The size of the kernel in conv layer
-int kernel_size;
+  /// The size of the kernel in conv layer
+  int kernel_size;
 
-/// The number of features in conv layer
-int nb_features;
+  /// The number of features in conv layer
+  int nb_features;
 
-/// The number of columns after pooling
-int grid_x;
-/// The number of lines after pooling
-int grid_y;
+  /// The number of columns after pooling
+  int grid_x;
+  /// The number of lines after pooling
+  int grid_y;
 
-/// The number of units in fully-connected layer
-int fc_units;
+  /// The number of units in fully-connected layer
+  int fc_units;
 
-OneLayerBuilder() : kernel_size(5), nb_features(16), grid_x(2), grid_y(2), fc_units(16) {}
-virtual ~OneLayerBuilder() {}
+  OneLayerBuilder() : kernel_size(5), nb_features(16), grid_x(2), grid_y(2), fc_units(16) {}
+  virtual ~OneLayerBuilder() {}
 
-network<sequential> buildNN() const override {
-  network<sequential> nn;
+  network<sequential> buildNN() const override {
+    network<sequential> nn;
 
-  const serial_size_t pooling_x = input.width / grid_x;
-  const serial_size_t pooling_y = input.height / grid_y;
+    const serial_size_t pooling_x = input.width / grid_x;
+    const serial_size_t pooling_y = input.height / grid_y;
 
-  int convol_size = kernel_size * kernel_size * input.depth * nb_features;
-  const serial_size_t fc_layer_input_dim = grid_x * grid_y * nb_features;
-  int fc_size = fc_layer_input_dim * fc_units;
+    int convol_size = kernel_size * kernel_size * input.depth * nb_features;
+    const serial_size_t fc_layer_input_dim = grid_x * grid_y * nb_features;
+    int fc_size = fc_layer_input_dim * fc_units;
 
-  std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
-  std::cout << "parameters in convolution layer    : " << convol_size << std::endl;
-  std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in convolution layer    : " << convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
 
-  nn << conv<identity>(input.width, input.height, kernel_size, input.depth, nb_features, padding::same)
-     << pool(input.width, input.height, nb_features, pooling_x, pooling_y, pooling_x, pooling_y)
-     << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
-     << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
-  return nn;
-}
+    nn << conv<identity>(input.width, input.height, kernel_size, input.depth, nb_features, padding::same)
+       << pool(input.width, input.height, nb_features, pooling_x, pooling_y, pooling_x, pooling_y)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
+       << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
+    return nn;
+  }
 
-Json::Value toJson() const {
-  throw std::logic_error(DEBUG_INFO + " not implemented");
-}
+  Json::Value toJson() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
 
-void fromJson(const Json::Value & v, const std::string & dir_path) {
-  NNBuilder::fromJson(v, dir_path);
-  rhoban_utils::tryRead(v, "kernel_size", &kernel_size);
-  rhoban_utils::tryRead(v, "nb_features", &nb_features);
-  rhoban_utils::tryRead(v, "grid_x"     , &grid_x);
-  rhoban_utils::tryRead(v, "grid_y"     , &grid_y);
-  rhoban_utils::tryRead(v, "fc_units"   , &fc_units);
-}
+  void fromJson(const Json::Value & v, const std::string & dir_path) {
+    NNBuilder::fromJson(v, dir_path);
+    rhoban_utils::tryRead(v, "kernel_size", &kernel_size);
+    rhoban_utils::tryRead(v, "nb_features", &nb_features);
+    rhoban_utils::tryRead(v, "grid_x"     , &grid_x);
+    rhoban_utils::tryRead(v, "grid_y"     , &grid_y);
+    rhoban_utils::tryRead(v, "fc_units"   , &fc_units);
+  }
 
-std::string getClassName() const {
-  return "OneLayerBuilder";
-}
+  std::string getClassName() const {
+    return "OneLayerBuilder";
+  }
+
+
+  std::string toString() const {
+    return "_kernerl" + to_string(kernel_size) + "_features" + to_string(nb_features) + "_grid" + to_string(grid_x)
+      + "x" + to_string(grid_y) + "_fcunits" + to_string(fc_units);
+  }
+
 };
 
 class TwoLayersBuilder : public NNBuilder {
 public:
-/// The size of the kernel in the 1st conv layer
-int kernel1_size;
+  /// The size of the kernel in the 1st conv layer
+  int kernel1_size;
 
-/// The size of the kernel in the 2nd conv layer
-int kernel2_size;
+  /// The size of the kernel in the 2nd conv layer
+  int kernel2_size;
 
-/// The number of features in 1st conv layer
-int nb_features1;
+  /// The number of features in 1st conv layer
+  int nb_features1;
 
-/// The number of features in 2nd conv layer
-int nb_features2;
+  /// The number of features in 2nd conv layer
+  int nb_features2;
 
-/// The number of columns after 1st pooling
-int grid1_x;
-/// The number of lines after 1st pooling
-int grid1_y;
+  /// The number of columns after 1st pooling
+  int grid1_x;
+  /// The number of lines after 1st pooling
+  int grid1_y;
 
-/// The number of columns after 2nd pooling
-int grid2_x;
-/// The number of lines after 2nd pooling
-int grid2_y;
+  /// The number of columns after 2nd pooling
+  int grid2_x;
+  /// The number of lines after 2nd pooling
+  int grid2_y;
 
-/// The number of units in fully-connected layer
-int fc_units;
+  /// The number of units in fully-connected layer
+  int fc_units;
 
-TwoLayersBuilder()
-  : kernel1_size(3), kernel2_size(3),
-    nb_features1(8), nb_features2(8),
-    grid1_x(2), grid1_y(2),
-    grid2_x(2), grid2_y(2),
-    fc_units(16)
-  {}
+  TwoLayersBuilder()
+    : kernel1_size(3), kernel2_size(3),
+      nb_features1(8), nb_features2(8),
+      grid1_x(2), grid1_y(2),
+      grid2_x(2), grid2_y(2),
+      fc_units(16)
+    {}
 
-virtual ~TwoLayersBuilder() {}
+  virtual ~TwoLayersBuilder() {}
 
-network<sequential> buildNN() const override {
-  network<sequential> nn;
+  network<sequential> buildNN() const override {
+    network<sequential> nn;
 
-  const serial_size_t pooling1_x = input.width / grid1_x;
-  const serial_size_t pooling1_y = input.height / grid1_y;
-  const serial_size_t pooling2_x = grid1_x / grid2_x;
-  const serial_size_t pooling2_y = grid1_y / grid2_y;
+    const serial_size_t pooling1_x = input.width / grid1_x;
+    const serial_size_t pooling1_y = input.height / grid1_y;
+    const serial_size_t pooling2_x = grid1_x / grid2_x;
+    const serial_size_t pooling2_y = grid1_y / grid2_y;
 
-  const serial_size_t fc_layer_input_dim = grid2_x * grid2_y * nb_features2;
+    const serial_size_t fc_layer_input_dim = grid2_x * grid2_y * nb_features2;
 
-  int first_convol_size = kernel1_size * kernel1_size * input.depth * nb_features1;
-  int second_convol_size = kernel2_size * kernel2_size * nb_features1 * nb_features2;
-  int fc_size = fc_layer_input_dim * fc_units;
+    int first_convol_size = kernel1_size * kernel1_size * input.depth * nb_features1;
+    int second_convol_size = kernel2_size * kernel2_size * nb_features1 * nb_features2;
+    int fc_size = fc_layer_input_dim * fc_units;
 
-  std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
-  std::cout << "parameters in 1st convolution layer: " << first_convol_size << std::endl;
-  std::cout << "parameters in 2nd convolution layer: " << second_convol_size << std::endl;
-  std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
+    std::cout << "fc_layer_input_dim: " << fc_layer_input_dim << std::endl;
+    std::cout << "parameters in 1st convolution layer: " << first_convol_size << std::endl;
+    std::cout << "parameters in 2nd convolution layer: " << second_convol_size << std::endl;
+    std::cout << "parameters in fully-connected layer: " << fc_size << std::endl;
 
-  nn << conv<identity>(input.width, input.height, kernel1_size, input.depth,
-                       nb_features1, padding::same)
-     << pool(input.width, input.height, nb_features1,
-             pooling1_x, pooling1_y, pooling1_x, pooling1_y)
-     << conv<identity>(grid1_x, grid1_y, kernel2_size, nb_features1, nb_features2, padding::same)
-     << pool(grid1_x, grid1_y, nb_features2,
-             pooling2_x, pooling2_y, pooling2_x, pooling2_y)
-     << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
-     << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
-  return nn;
-}
+    nn << conv<identity>(input.width, input.height, kernel1_size, input.depth,
+                         nb_features1, padding::same)
+       << pool(input.width, input.height, nb_features1,
+               pooling1_x, pooling1_y, pooling1_x, pooling1_y)
+       << conv<identity>(grid1_x, grid1_y, kernel2_size, nb_features1, nb_features2, padding::same)
+       << pool(grid1_x, grid1_y, nb_features2,
+               pooling2_x, pooling2_y, pooling2_x, pooling2_y)
+       << fully_connected_layer<activation::identity>(fc_layer_input_dim, fc_units)
+       << fully_connected_layer<softmax>(fc_units, 2); //2 classes output
+    return nn;
+  }
 
 
-Json::Value toJson() const {
-  throw std::logic_error(DEBUG_INFO + " not implemented");
-}
+  Json::Value toJson() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
 
-void fromJson(const Json::Value & v, const std::string & dir_path) {
-  NNBuilder::fromJson(v, dir_path);
-  rhoban_utils::tryRead(v, "kernel1_size", &kernel1_size);
-  rhoban_utils::tryRead(v, "kernel2_size", &kernel2_size);
-  rhoban_utils::tryRead(v, "nb_features1", &nb_features1);
-  rhoban_utils::tryRead(v, "nb_features2", &nb_features2);
-  rhoban_utils::tryRead(v, "grid1_x"     , &grid1_x);
-  rhoban_utils::tryRead(v, "grid1_y"     , &grid1_y);
-  rhoban_utils::tryRead(v, "grid2_x"     , &grid2_x);
-  rhoban_utils::tryRead(v, "grid2_y"     , &grid2_y);
-  rhoban_utils::tryRead(v, "fc_units"    , &fc_units);
-}
+  void fromJson(const Json::Value & v, const std::string & dir_path) {
+    NNBuilder::fromJson(v, dir_path);
+    rhoban_utils::tryRead(v, "kernel1_size", &kernel1_size);
+    rhoban_utils::tryRead(v, "kernel2_size", &kernel2_size);
+    rhoban_utils::tryRead(v, "nb_features1", &nb_features1);
+    rhoban_utils::tryRead(v, "nb_features2", &nb_features2);
+    rhoban_utils::tryRead(v, "grid1_x"     , &grid1_x);
+    rhoban_utils::tryRead(v, "grid1_y"     , &grid1_y);
+    rhoban_utils::tryRead(v, "grid2_x"     , &grid2_x);
+    rhoban_utils::tryRead(v, "grid2_y"     , &grid2_y);
+    rhoban_utils::tryRead(v, "fc_units"    , &fc_units);
+  }
 
-std::string getClassName() const {
-  return "TwoLayersBuilder";
-}
+  std::string getClassName() const {
+    return "TwoLayersBuilder";
+  }
+  std::string toString() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
 };
 
 class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
@@ -329,10 +341,8 @@ static void parse_file(const std::string& filename,
 }
 
 double train_cifar(string data_train, string data_test, string nn_config,
-                 double learning_rate, ostream& log) {
+                 double learning_rate, ostream& log, Config& config) {
     // specify loss-function and learning strategy
-    Config config;
-    config.loadFile(nn_config);
     adam optimizer;
 
     network<sequential> nn = config.nnbuilder->buildNN();
@@ -415,7 +425,8 @@ double train_cifar(string data_train, string data_test, string nn_config,
 }
 
 void dichotomic_train_cifar(string data_train, string data_test, string nn_config,
-                 double learning_rate_start, double learning_rate_end, double dichotomy_depth, ofstream& results_file) {
+                 double learning_rate_start, double learning_rate_end, double dichotomy_depth, ofstream& results_file,
+                 Config& config) {
   // search is finished
   if (dichotomy_depth < 0){
     cout << "Search finished" << endl;
@@ -432,7 +443,7 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
   // we try the middle learning rate
   double learning_rate = (learning_rate_end + learning_rate_start)/2.0;
   timer t;
-  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout);
+  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config);
   if (validation_score > 0){
     results_file << learning_rate << "," << setprecision (4) << validation_score << "," << t.elapsed() << std::endl;
     learning_rate_start = learning_rate;
@@ -441,7 +452,7 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
     results_file << learning_rate << "," << "overfit" << "," << t.elapsed() << std::endl;
     learning_rate_end = learning_rate;
   }
-  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file);
+  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config);
 }
 
 int main(int argc, char **argv) {
@@ -457,25 +468,10 @@ int main(int argc, char **argv) {
   double learning_rate_end = config.learning_rate_end;
   double dichotomy_depth = config.dichotomy_depth;
   InputConfig input = config.nnbuilder->input;
-  std::unique_ptr<NNBuilder> nnbuilder = config.nnbuilder;
 
-  std::ofstream results_file("results.csv");
-  results_file << "learning_rate,validationScore,learning_time_input"
-               << input.width
-               << "x"
-               << input.height
-               << "x"
-               << input.depth
-               << "_kernerl"
-               << nnbuilder->kernel_size
-               << "_features"
-               << nnbuilder->nb_features
-               << "_grid"
-               << nnbuilder->grid_x
-               << "x"
-               << nnbuilder->grid_y
-               << "_fcunits"
-               << nnbuilder->fc_units
-               << std::endl;
-  dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file);
+  std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + config.nnbuilder->toString() + ".csv";
+  std::ofstream results_file(file);
+  results_file << "learning_rate,validationScore,learning_time_input";
+
+  dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config);
 }
