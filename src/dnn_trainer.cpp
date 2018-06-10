@@ -232,7 +232,11 @@ public:
     return "TwoLayersBuilder";
   }
   std::string toString() const {
-    throw std::logic_error(DEBUG_INFO + " not implemented");
+    return "_kernerl1-" + to_string(kernel1_size) + "_kernerl2-" + to_string(kernel2_size) +
+      "_features1" + to_string(nb_features1) + "_features2" + to_string(nb_features2) +
+      "_grid1" + to_string(grid1_x) + "x" + to_string(grid1_y) +
+      "_grid2" + to_string(grid2_x) + "x" + to_string(grid2_y) +
+      "_fcunits" + to_string(fc_units);
   }
 };
 
