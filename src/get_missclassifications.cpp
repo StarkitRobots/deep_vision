@@ -137,7 +137,10 @@ void treatFiles(network<sequential> &nn, const vector<string> & file_paths,
     if(fp || fn) {
       cv::Mat img = cv::imread(file_path);
       string cmd="mkdir -p missclassified";
-      system(cmd.c_str());
+      if (system(cmd.c_str()) != 0) {
+        std::cerr << "Failed to apply cmd: '" << cmd << "'" << std::endl;
+        exit(EXIT_FAILURE);
+      }
       sprintf(filename, "%s_%05d.png", fp ? "fp" : "fn", idx);
       cv::imwrite(filename, img);
       idx++;
