@@ -26,6 +26,8 @@
 #include <string>
 #include <cmath>
 
+#include "rhoban_utils/threading/multi_core.h"
+
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
@@ -382,8 +384,12 @@ double train_cifar(string data_train, string data_test, string nn_config,
 
     bool overfitting_flag=false;
     // create callback
+
+    int i=1;
     auto on_enumerate_epoch = [&]() {
         cout << t.elapsed() << "s elapsed." << endl;
+        cout << "Epoch number "<< to_string(i) << endl;
+        i=i+1;
         timer t1;
         tiny_dnn::result res = nn.test(test_images, test_labels);
         cout << t1.elapsed() << "s elapsed (test)." << endl;
@@ -474,16 +480,33 @@ int main(int argc, char **argv) {
   double learning_rate_end = config.learning_rate_end;
   double dichotomy_depth = config.dichotomy_depth;
 
-  for (const auto & nnbuilder_pair : config.nnbuilders) {
-    std::string nnbuilder_name = nnbuilder_pair.first;
-    const NNBuilder & nnbuilder = *(nnbuilder_pair.second);
-    InputConfig input = nnbuilder.input;
+  auto learning_task =
+    [&]()
+    {
+      for (const auto & nnbuilder_pair : config.nnbuilders) {
+        std::string nnbuilder_name = nnbuilder_pair.first;
+        const NNBuilder & nnbuilder = *(nnbuilder_pair.second);
+        InputConfig input = nnbuilder.input;
 
-    std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
-    std::ofstream results_file(file);
-    results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
+        std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
+        std::ofstream results_file(file);
+        results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
 
-    dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name);
-  }
+        dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name);
+      }
+    };
+  int nb_threads = 4;
+  rhoban_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
+
+  //auto learning_task =
+  //  [&](int start_idx, int end_idx)
+  //  {
+  //    for (int idx = start_idx; idx < end_idx; idx++) {
+  //      std::cout << "Training " << idx << std::endl;
+  //      trainNN(training_inputs, training_outputs, cv_inputs, cv_outputs,
+  //              learning_rates[idx], reset_weights, &(networks[idx]), &(cv_losses[idx]));
+  //    }
+  //  };
+  //rhoban_utils::MultiCore::runParallelTask(learning_task, learning_rates.size(), nb_threads);
 
 }
