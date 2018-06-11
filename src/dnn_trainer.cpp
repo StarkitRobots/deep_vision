@@ -252,37 +252,38 @@ NNBuilderFactory() {
 
 class Config : public rhoban_utils::JsonSerializable {
 public:
-std::unique_ptr<NNBuilder> nnbuilder;
-int nb_minibatch;
-int nb_train_epochs;
-double learning_rate_start;
-double learning_rate_end;
-double dichotomy_depth;
+  std::map<std::string, std::unique_ptr<NNBuilder>> nnbuilders;
+  std::unique_ptr<NNBuilder> nnbuilder;
+  int nb_minibatch;
+  int nb_train_epochs;
+  double learning_rate_start;
+  double learning_rate_end;
+  double dichotomy_depth;
 
-Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
-  learning_rate_end(0.05), dichotomy_depth(5) {}
-Config(const Config & other)
-  : nb_minibatch(other.nb_minibatch), nb_train_epochs(other.nb_train_epochs),
-  learning_rate_start(other.learning_rate_start), learning_rate_end(other.learning_rate_end),
-  dichotomy_depth(other.dichotomy_depth) {}
-~Config() {}
+  Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
+    learning_rate_end(0.05), dichotomy_depth(5) {}
+  Config(const Config & other)
+    : nb_minibatch(other.nb_minibatch), nb_train_epochs(other.nb_train_epochs),
+    learning_rate_start(other.learning_rate_start), learning_rate_end(other.learning_rate_end),
+    dichotomy_depth(other.dichotomy_depth) {}
+  ~Config() {}
 
-std::string getClassName() const override {
-  return "DNNTrainerConfig";
-}
-
-Json::Value toJson() const override {
-  throw std::logic_error(DEBUG_INFO + " not implemented");
-}
-
-virtual void fromJson(const Json::Value & v, const std::string & path) {
-  nnbuilder =  NNBuilderFactory().read(v,"network", path);
-    nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
-    nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
-    learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
-    learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end" );
-    dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth" );
+  std::string getClassName() const override {
+    return "DNNTrainerConfig";
   }
+
+  Json::Value toJson() const override {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  virtual void fromJson(const Json::Value & v, const std::string & path) {
+      nnbuilders = NNBuilderFactory().readMap(v, "networks", path);
+      nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch" );
+      nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs" );
+      learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start" );
+      learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end" );
+      dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth" );
+    }
 };
 
 static void parse_file(const std::string& filename,
@@ -345,12 +346,12 @@ static void parse_file(const std::string& filename,
 }
 
 double train_cifar(string data_train, string data_test, string nn_config,
-                 double learning_rate, ostream& log, Config& config) {
+                 double learning_rate, ostream& log, Config& config, string nnbuilder_name) {
     // specify loss-function and learning strategy
     adam optimizer;
 
-    network<sequential> nn = config.nnbuilder->buildNN();
-    InputConfig input = config.nnbuilder->input;
+    network<sequential> nn = config.nnbuilders[nnbuilder_name]->buildNN();
+    InputConfig input = config.nnbuilders[nnbuilder_name]->input;
 
     log << "learning rate:" << learning_rate << endl;
 
@@ -430,7 +431,7 @@ double train_cifar(string data_train, string data_test, string nn_config,
 
 void dichotomic_train_cifar(string data_train, string data_test, string nn_config,
                  double learning_rate_start, double learning_rate_end, double dichotomy_depth, ofstream& results_file,
-                 Config& config) {
+                 Config& config, string nnbuilder_name) {
   // search is finished
   if (dichotomy_depth < 0){
     cout << "Search finished" << endl;
@@ -447,7 +448,7 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
   // we try the middle learning rate
   double learning_rate = (learning_rate_end + learning_rate_start)/2.0;
   timer t;
-  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config);
+  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config, nnbuilder_name);
   if (validation_score > 0){
     results_file << learning_rate << "," << setprecision (4) << validation_score << "," << t.elapsed() << std::endl;
     learning_rate_start = learning_rate;
@@ -456,8 +457,9 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
     results_file << learning_rate << "," << "overfit" << "," << t.elapsed() << std::endl;
     learning_rate_end = learning_rate;
   }
-  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config);
+  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config, nnbuilder_name);
 }
+
 
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -471,11 +473,17 @@ int main(int argc, char **argv) {
   double learning_rate_start = config.learning_rate_start;
   double learning_rate_end = config.learning_rate_end;
   double dichotomy_depth = config.dichotomy_depth;
-  InputConfig input = config.nnbuilder->input;
 
-  std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + config.nnbuilder->toString() + ".csv";
-  std::ofstream results_file(file);
-  results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
+  for (const auto & nnbuilder_pair : config.nnbuilders) {
+    std::string nnbuilder_name = nnbuilder_pair.first;
+    const NNBuilder & nnbuilder = *(nnbuilder_pair.second);
+    InputConfig input = nnbuilder.input;
 
-  dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config);
+    std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
+    std::ofstream results_file(file);
+    results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
+
+    dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name);
+  }
+
 }
