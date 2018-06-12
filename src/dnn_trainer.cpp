@@ -480,12 +480,17 @@ int main(int argc, char **argv) {
   double learning_rate_end = config.learning_rate_end;
   double dichotomy_depth = config.dichotomy_depth;
 
+  vector<std::string> keys;
+  for ( const auto & entry : config.nnbuilders){
+    keys.push_back(entry.first);
+  }
+
   auto learning_task =
-    [&]()
+    [&](int start_idx, int end_idx)
     {
-      for (const auto & nnbuilder_pair : config.nnbuilders) {
-        std::string nnbuilder_name = nnbuilder_pair.first;
-        const NNBuilder & nnbuilder = *(nnbuilder_pair.second);
+      for (int idx = start_idx; idx < end_idx; idx++) {
+        std::string nnbuilder_name = keys[idx];
+        const NNBuilder & nnbuilder = *(config.nnbuilders[nnbuilder_name]);
         InputConfig input = nnbuilder.input;
 
         std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
