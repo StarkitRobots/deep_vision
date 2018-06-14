@@ -128,7 +128,6 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
 
     print "Constructing the binaries."
     pos_test_files_path = [pos_test_dir + file for file in os.listdir(pos_test_dir) if file.endswith("png")]
-    print "ICI : %d"%len(pos_test_files_path)
     pos_learning_files_path = [pos_learning_dir + file for file in os.listdir(pos_learning_dir) if file.endswith("png")]
     neg_test_files_path = [neg_test_dir + file for file in os.listdir(neg_test_dir) if file.endswith("png")]
     neg_learning_files_path = [neg_learning_dir + file for file in os.listdir(neg_learning_dir) if file.endswith("png")]
