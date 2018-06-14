@@ -81,8 +81,6 @@ def to_bin(filename, label, w, h, mode):
 
 def make_test_set(positive_dir,negative_dir):
     # Preparing the directories 
-    print "pos : " + positive_dir
-    print "neg : " + negative_dir 
     positive_test_dir = positive_dir + 'test_set/'
     positive_learning_dir = positive_dir + 'learning_set/'
     negative_learning_dir = negative_dir + 'learning_set/'
