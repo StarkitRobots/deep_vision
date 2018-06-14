@@ -28,9 +28,9 @@ python ${scripts_path}/get_from_json.py ${img_path}/data.json
 echo "Moving negative images"
 mkdir $neg_path
 mv ${img_path}/*.png ${neg_path}
-# Adding noise
-echo "Adding noise"
-echo "Adding noise positives"
-python ${scripts_path}/add_noise.py ${pos_path}
+## Adding noise
+#echo "Adding noise"
+#echo "Adding noise positives"
+#python ${scripts_path}/add_noise.py ${pos_path}
 #echo "Adding noise negative"
 #python ${scripts_path}/add_noise.py ${neg_path}

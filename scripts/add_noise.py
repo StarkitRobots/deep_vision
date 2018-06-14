@@ -50,8 +50,8 @@ if __name__ == '__main__':
 
         # symmetry
         rimg = cv2.flip(img, 1)
-        cv2.imshow('im', img)
-        cv2.imshow('rim', rimg)
+        #cv2.imshow('im', img)
+        #cv2.imshow('rim', rimg)
         base + outname + '' + image
         # cv2.imwrite(base + outname + '' + image)
 
@@ -68,8 +68,8 @@ if __name__ == '__main__':
             bimg = cv2.blur(img, (gs, gs))
             brimg = cv2.blur(rimg, (gs, gs))
 
-            cv2.imshow('bim', bimg)
-            cv2.imshow('brim', brimg)
+            #cv2.imshow('bim', bimg)
+            #cv2.imshow('brim', brimg)
 
             # print 'test', dirname + str(gs) + '_' + name
             # print 'test', dirname + str(gs) + '_sym_' + name

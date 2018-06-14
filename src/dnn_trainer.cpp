@@ -242,6 +242,61 @@ public:
   }
 };
 
+class cifar10Builder : public NNBuilder {
+public:
+
+  int n_fmaps1;  ///< number of feature maps for upper layer
+  int n_fmaps2;  ///< number of feature maps for middle layer
+  int n_fmaps3;  ///< number of feature maps for lower layer
+  int n_fc;  ///< number of hidden units in fully-connected layer
+
+  cifar10Builder()
+    : n_fmaps1(32), n_fmaps2(32), n_fmaps3(64), n_fc(64)
+    {}
+
+  virtual ~cifar10Builder() {}
+
+
+  network<sequential> buildNN() const override {
+    // specify loss-function and learning strategy
+    network<sequential> nn;
+
+    typedef convolutional_layer<activation::identity> conv;
+    typedef max_pooling_layer<relu> pool;
+
+    nn << conv(32, 32, 5, 3, n_fmaps1, padding::same)
+        << pool(32, 32, n_fmaps1, 2)
+        << conv(16, 16, 5, n_fmaps1, n_fmaps2, padding::same)
+        << pool(16, 16, n_fmaps2, 2)
+        << conv(8, 8, 5, n_fmaps2, n_fmaps3, padding::same)
+        << pool(8, 8, n_fmaps3, 2)
+        << fully_connected_layer<activation::identity>(4 * 4 * n_fmaps3, n_fc)
+        << fully_connected_layer<softmax>(n_fc, 10);
+
+    return nn;
+  }
+
+
+  Json::Value toJson() const {
+    throw std::logic_error(DEBUG_INFO + " not implemented");
+  }
+
+  void fromJson(const Json::Value & v, const std::string & dir_path) {
+    NNBuilder::fromJson(v, dir_path);
+    rhoban_utils::tryRead(v, "n_fmaps1", &n_fmaps1);
+    rhoban_utils::tryRead(v, "n_fmaps2", &n_fmaps2);
+    rhoban_utils::tryRead(v, "n_fmaps3", &n_fmaps3);
+    rhoban_utils::tryRead(v, "n_fc", &n_fc);
+  }
+
+  std::string getClassName() const {
+    return "cifar10Builder";
+  }
+  std::string toString() const {
+    return "cifar10_n_fmaps1-" + to_string(n_fmaps1) + "n_fmaps2-" + to_string(n_fmaps2) + "n_fmaps3-" + to_string(n_fmaps3) + "n_fc" + to_string(n_fc);
+  }
+};
+
 class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder> {
 public:
 NNBuilderFactory() {
@@ -249,6 +304,8 @@ NNBuilderFactory() {
                   [](){return std::unique_ptr<NNBuilder>(new OneLayerBuilder());});
   registerBuilder("TwoLayersBuilder",
                   [](){return std::unique_ptr<NNBuilder>(new TwoLayersBuilder());});
+  registerBuilder("cifar10Builder",
+                  [](){return std::unique_ptr<NNBuilder>(new cifar10Builder());});
 }
 };
 
@@ -260,7 +317,7 @@ public:
   int nb_train_epochs;
   double learning_rate_start;
   double learning_rate_end;
-  double dichotomy_depth;
+  int dichotomy_depth;
 
   Config() : nb_minibatch(10), nb_train_epochs(10), learning_rate_start(0.005),
     learning_rate_end(0.05), dichotomy_depth(5) {}
@@ -347,7 +404,7 @@ static void parse_file(const std::string& filename,
   }
 }
 
-double train_cifar(string data_train, string data_test, string nn_config,
+vector<double> train_cifar(string data_train, string data_test, string nn_config,
                  double learning_rate, ostream& log, Config& config, string nnbuilder_name) {
     // specify loss-function and learning strategy
     adam optimizer;
@@ -382,18 +439,20 @@ double train_cifar(string data_train, string data_test, string nn_config,
 
     optimizer.alpha *= static_cast<tiny_dnn::float_t>(sqrt(nb_minibatch) * learning_rate);
 
-    bool overfitting_flag=false;
     // create callback
 
-    int i=1;
+    int i=0;
+    bool overfitting_flag=false;
+    double last_percentage=0;
+
     auto on_enumerate_epoch = [&]() {
+        i=i+1;
         cout << t.elapsed() << "s elapsed." << endl;
         cout << "Epoch number "<< to_string(i) << endl;
-        i=i+1;
         timer t1;
         tiny_dnn::result res = nn.test(test_images, test_labels);
         cout << t1.elapsed() << "s elapsed (test)." << endl;
-        float percentage = (float)(res.num_success)/(float)(res.num_total)*100.0;
+        double percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
         log << res.num_success << "/" << res.num_total << " "<< percentage <<"%"<<endl;
 
         if (percentage == 50.0){
@@ -401,8 +460,10 @@ double train_cifar(string data_train, string data_test, string nn_config,
             overfitting_flag=true;
             return false;
         }
+        cout << "improvement : " << percentage-last_percentage;
         disp.restart(train_images.size());
         t.restart();
+        last_percentage=percentage;
         return true;
     };
 
@@ -418,7 +479,7 @@ double train_cifar(string data_train, string data_test, string nn_config,
     cout << "end training." << endl;
 
     if (overfitting_flag == true){
-        return 0.0;
+        return {0.0,0.0,(double)i};
     }
 
     // test and show results
@@ -432,7 +493,8 @@ double train_cifar(string data_train, string data_test, string nn_config,
     //ofstream ofs("ball_exp_weights");
     //ofs << nn;
 
-    return (float)(res.num_success)/(float)(res.num_total)*100.0;
+    double percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
+    return {percentage,percentage-last_percentage,i};
 }
 
 void dichotomic_train_cifar(string data_train, string data_test, string nn_config,
@@ -454,13 +516,14 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
   // we try the middle learning rate
   double learning_rate = (learning_rate_end + learning_rate_start)/2.0;
   timer t;
-  double validation_score = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config, nnbuilder_name);
+  vector<double> results = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config, nnbuilder_name);
+  double validation_score = results[0];
   if (validation_score > 0){
-    results_file << learning_rate << "," << setprecision (4) << validation_score << "," << t.elapsed() << std::endl;
+    results_file << learning_rate << "," << setprecision (4) << validation_score << "," << to_string(results[1]) << "," << to_string((int)results[2]) << "," << t.elapsed() << std::endl;
     learning_rate_start = learning_rate;
   }
   else{
-    results_file << learning_rate << "," << "overfit" << "," << t.elapsed() << std::endl;
+    results_file << learning_rate << "," << "overfit" << "," << to_string(results[1]) << "," << to_string((int)results[2]) << "," << t.elapsed() << std::endl;
     learning_rate_end = learning_rate;
   }
   dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config, nnbuilder_name);
@@ -495,7 +558,7 @@ int main(int argc, char **argv) {
 
         std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
         std::ofstream results_file(file);
-        results_file << "learning_rate,validationScore,learning_time_input" << std::endl;
+        results_file << "learning_rate,validationScore,last_improvement,last_epoch,learning_time" << std::endl;
 
         dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name);
       }

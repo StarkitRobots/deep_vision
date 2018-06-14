@@ -28,6 +28,7 @@ import sys
 import numpy as np
 import cv2
 import os
+import shutil
 
 def to_bin(filename, label, w, h, mode):
     im = cv2.imread(filename)
@@ -44,66 +45,104 @@ def to_bin(filename, label, w, h, mode):
         im = (np.array(res))
         y = im[:,:].flatten()
         out = np.array(list((label, )) + list(y), np.uint8)
-        
-
     return out
 
 
-def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
-    data_dict = {}
-    for file in os.listdir(positive_dir):
-        if file.endswith(".png"):
-            # print('Positive ' + file)
-            data_dict[positive_dir + '/' + file] = 1
+#def to_cifar(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
+#    data_dict = {}
+#    for file in os.listdir(positive_dir):
+#        if file.endswith(".png"):
+#            # print('Positive ' + file)
+#            data_dict[positive_dir + '/' + file] = 1
+#
+#    for file in os.listdir(negative_dir):
+#        if file.endswith(".png"):
+#            # print('Negative ' + file)
+#            data_dict[negative_dir + '/' +  file] = 0
+#
+#    keys = list(data_dict.keys())
+#    np.random.shuffle(keys)
+#
+#    dataout = []
+#
+#    # tests
+#    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[:nbtest]]
+#    dataout = np.concatenate(dataout, axis=0)
+#    # print(dataout)
+#    dataout =  np.array(dataout, np.uint8)
+#    dataout.tofile('test_' + outfile)
+#
+#    dataout = []
+#    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[nbtest:]]
+#    dataout = np.concatenate(dataout, axis=0)
+#    # print(dataout)
+#    dataout =  np.array(dataout, np.uint8)
+#    dataout.tofile(outfile)
 
-    for file in os.listdir(negative_dir):
-        if file.endswith(".png"):
-            # print('Negative ' + file)
-            data_dict[negative_dir + '/' +  file] = 0
+def make_test_set(positive_dir,negative_dir):
+    # Preparing the directories 
+    print "pos : " + positive_dir
+    print "neg : " + negative_dir 
+    positive_test_dir = positive_dir + 'test_set/'
+    positive_learning_dir = positive_dir + 'learning_set/'
+    negative_learning_dir = negative_dir + 'learning_set/'
+    negative_test_dir = negative_dir + 'test_set/'
 
-    keys = list(data_dict.keys())
-    np.random.shuffle(keys)
+    for dir in [positive_test_dir,positive_learning_dir,negative_test_dir,negative_learning_dir]:
+      if os.path.exists(dir):
+        shutil.rmtree(dir)
+    os.makedirs(positive_test_dir)
+    os.makedirs(positive_learning_dir)
+    os.makedirs(negative_learning_dir)
+    os.makedirs(negative_test_dir)
 
-    dataout = []
+    # Splitting positive files in : learning/test
+    pos_files = [file for file in os.listdir(positive_dir) if file.endswith("png")]
+    np.random.shuffle(pos_files)
 
-    # tests
-    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[:nbtest]]
-    dataout = np.concatenate(dataout, axis=0)
-    # print(dataout)
-    dataout =  np.array(dataout, np.uint8)
-    dataout.tofile('test_' + outfile)
+    nb_positive_tests = len(pos_files)/10;
 
-    dataout = []
-    [dataout.append(to_bin(k, data_dict[k], w, h, mode)) for k in keys[nbtest:]]
-    dataout = np.concatenate(dataout, axis=0)
-    # print(dataout)
-    dataout =  np.array(dataout, np.uint8)
-    dataout.tofile(outfile)
+    for file in pos_files[:nb_positive_tests]:
+      shutil.copyfile(positive_dir + file,positive_test_dir + file)
+    for file in pos_files[nb_positive_tests:]:
+      shutil.copyfile(positive_dir + file,positive_learning_dir + file)
+
+    # Adding noise in order to have more positive images
+    os.system("python scripts/add_noise.py " + positive_test_dir)
+    os.system("python scripts/add_noise.py " + positive_learning_dir)
+
+    # Splitting negative files. We don't need to add noise
+    neg_files = [file for file in os.listdir(negative_dir) if file.endswith("png")]
+    np.random.shuffle(neg_files)
+    nb_negative_tests = len(os.listdir(positive_test_dir + "/generated"))
+    for file in neg_files[:nb_negative_tests]:
+      shutil.copyfile(negative_dir + file,negative_test_dir + file)
+    for file in neg_files[nb_negative_tests:]:
+      shutil.copyfile(negative_dir + file,negative_learning_dir + file)
+
+    return positive_test_dir + "generated/",positive_learning_dir + "generated/", negative_test_dir,negative_learning_dir
 
 # In this version, the same number of pos and neg are used for tests
-def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
-    pos_data_dict = {}
-    neg_data_dict = {}
+def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
+
+    print "Preparing the learning and the test sets."
+    pos_test_dir, pos_learning_dir, neg_test_dir, neg_learning_dir = make_test_set(positive_dir, negative_dir)
+
+    print "Constructing the binaries."
+    pos_test_files_path = [pos_test_dir + file for file in os.listdir(pos_test_dir) if file.endswith("png")]
+    print "ICI : %d"%len(pos_test_files_path)
+    pos_learning_files_path = [pos_learning_dir + file for file in os.listdir(pos_learning_dir) if file.endswith("png")]
+    neg_test_files_path = [neg_test_dir + file for file in os.listdir(neg_test_dir) if file.endswith("png")]
+    neg_learning_files_path = [neg_learning_dir + file for file in os.listdir(neg_learning_dir) if file.endswith("png")]
+
     data_dict = {}
-    for file in os.listdir(positive_dir):
-        if file.endswith(".png"):
-            # print('Positive ' + file)
-            pos_data_dict[positive_dir + '/' + file] = 1
-            data_dict[positive_dir + '/' + file] = 1
+    for file in pos_test_files_path +  pos_learning_files_path:
+        data_dict[file] = 1
+    for file in neg_test_files_path + neg_learning_files_path:
+        data_dict[file] = 0
 
-    for file in os.listdir(negative_dir):
-        if file.endswith(".png"):
-            # print('Negative ' + file)
-            neg_data_dict[negative_dir + '/' +  file] = 0
-            data_dict[negative_dir + '/' + file] = 0
-
-    pos_keys = list(pos_data_dict.keys())
-    np.random.shuffle(pos_keys)
-    neg_keys = list(neg_data_dict.keys())
-    np.random.shuffle(neg_keys)
-
-    test_keys = pos_keys[:nbtest/2] + neg_keys[:nbtest/2]
-    learning_keys = pos_keys[nbtest/2:] + neg_keys[nbtest/2:]
+    test_keys = pos_test_files_path + neg_test_files_path
+    learning_keys = pos_learning_files_path + neg_learning_files_path
     np.random.shuffle(test_keys)
     np.random.shuffle(learning_keys)
 
@@ -124,22 +163,18 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, nbtest, w, h, mode):
     dataout.tofile(outfile)
 
 if __name__ == '__main__':
-    if (len(sys.argv) <= 4):
-        print("Usage: <positive_directory> <negative_directory> <output_prefix> <opt: nb_validation> <opt: width> <opt: height (default, same as width)> <opt: mode (BGR or Y)>")
+    if (len(sys.argv) <= 3):
+        print("Usage: <positive_directory> <negative_directory> <output_prefix> <opt: width> <opt: height (default, same as width)> <opt: mode (BGR or Y)>")
         exit()
-    nb_tests = 1000
     width = 32
     height = 32
     mode = "BGR"
     if (len(sys.argv) > 4):
-        nb_tests = int(sys.argv[4])
-    if (len(sys.argv) > 5):
-        width = int(sys.argv[5])
+        width = int(sys.argv[4])
         height = width
+    if (len(sys.argv) > 5):
+        height = int(sys.argv[5])
     if (len(sys.argv) > 6):
-        height = int(sys.argv[6])
-    if (len(sys.argv) > 7):
-        mode = sys.argv[7]
-    print ("Using " + str(nb_tests) + " tests and size " + str(width) + "x" + str(height))
+        mode = sys.argv[6]
     # positive_dir negative_dir outputfile
-    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], nb_tests, width, height, mode)
+    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], width, height, mode)
