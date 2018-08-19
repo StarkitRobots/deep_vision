@@ -1,0 +1,39 @@
+{
+  "networks" : {
+      "b" : {
+        "class name" : "OneLayerBuilder",
+        "content" : {
+            "input" : {
+                "width" : 32,
+                "height" : 32,
+                "depth" : 3 // 1 (Y) or 3 (RGB)
+            },
+            "kernel_size" : 5,
+            "nb_features" : 16,
+            "grid_x" : 2,
+            "grid_y" : 2,
+            "fc_units" : 16
+        }
+      },
+      "c" : {
+        "class name" : "OneLayerBuilder",
+        "content" : {
+            "input" : {
+                "width" : 32,
+                "height" : 32,
+                "depth" : 3 // 1 (Y) or 3 (RGB)
+            },
+            "kernel_size" : 5,
+            "nb_features" : 8,
+            "grid_x" : 2,
+            "grid_y" : 2,
+            "fc_units" : 16
+        }
+      }
+  },
+  "nb_minibatch" : 10,
+  "nb_train_epochs" : 10,
+  "learning_rate_start" : 0.04,
+  "learning_rate_end" : 0.1,
+  "dichotomy_depth" : 6
+}

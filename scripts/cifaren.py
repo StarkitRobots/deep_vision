@@ -160,18 +160,21 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
     dataout.tofile(outfile)
 
 if __name__ == '__main__':
-    if (len(sys.argv) <= 3):
-        print("Usage: <positive_directory> <negative_directory> <output_prefix> <opt: width> <opt: height (default, same as width)> <opt: mode (BGR or Y)>")
+    if (len(sys.argv) <= 1):
+        print("Usage: <output_prefix> <opt: width (default 32)> <opt: height (default same as width)> <opt: mode (BGR or Y)>")
         exit()
     width = 32
     height = 32
     mode = "BGR"
-    if (len(sys.argv) > 4):
-        width = int(sys.argv[4])
+    if (len(sys.argv) > 2):
+        width = int(sys.argv[2])
         height = width
-    if (len(sys.argv) > 5):
-        height = int(sys.argv[5])
-    if (len(sys.argv) > 6):
-        mode = sys.argv[6]
-    # positive_dir negative_dir outputfile
-    to_cifar_balanced(sys.argv[1], sys.argv[2], sys.argv[3], width, height, mode)
+    if (len(sys.argv) > 3):
+        height = int(sys.argv[3])
+    if (len(sys.argv) > 4):
+        mode = sys.argv[4]
+    
+    dir = glob.glob("Images/*")[0]
+    positive_dir = dir + "/positive"
+    negative_dir = dir + "/negative"
+    to_cifar_balanced(positive_dir, negative_dir, sys.argv[1], width, height, mode)

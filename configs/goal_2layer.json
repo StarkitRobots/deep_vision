@@ -1,0 +1,28 @@
+{
+  "networks" : {
+      "b" : {
+        "class name" : "TwoLayersBuilder",
+        "content" : {
+            "input" : {
+                "width" : 32,
+                "height" : 32,
+                "depth" : 3
+            },
+            "kernel1_size" : 5,
+            "kernel2_size" : 3,
+            "nb_features1" : 8,
+            "nb_features2" : 16,
+            "grid1_x" : 8,
+            "grid1_y" : 8,
+            "grid2_x" : 2,
+            "grid2_y" : 2,
+            "fc_units" : 4
+        }
+      }
+  },
+  "nb_minibatch" : 10,
+  "nb_train_epochs" : 30,
+  "learning_rate_start" : 0.0001,
+  "learning_rate_end" : 0.05,
+  "dichotomy_depth" : 13
+}
