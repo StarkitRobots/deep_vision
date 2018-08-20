@@ -28,6 +28,9 @@
 
 #include "rhoban_utils/threading/multi_core.h"
 
+#include<sys/stat.h>
+#include<sys/types.h>
+
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
@@ -404,12 +407,15 @@ static void parse_file(const std::string& filename,
   }
 }
 
-vector<double> train_cifar(string data_train, string data_test, string nn_config,
-                 double learning_rate, ostream& log, Config& config, string nnbuilder_name) {
+vector<double> train_cifar(
+    string data_train, string data_test, string nn_config,
+    double learning_rate, ostream& log, Config& config, string nnbuilder_name,
+    network<sequential>* nn
+) {
     // specify loss-function and learning strategy
     adam optimizer;
 
-    network<sequential> nn = config.nnbuilders[nnbuilder_name]->buildNN();
+    *nn = config.nnbuilders[nnbuilder_name]->buildNN();
     InputConfig input = config.nnbuilders[nnbuilder_name]->input;
 
     log << "learning rate:" << learning_rate << endl;
@@ -443,16 +449,21 @@ vector<double> train_cifar(string data_train, string data_test, string nn_config
 
     int i=0;
     bool overfitting_flag=false;
-    double last_percentage=0;
+    double previous_percentage, percentage=0;
 
     auto on_enumerate_epoch = [&]() {
-        i=i+1;
+        previous_percentage = percentage;
+
         cout << t.elapsed() << "s elapsed." << endl;
+
+        i=i+1;
         cout << "Epoch number "<< to_string(i) << endl;
+
         timer t1;
-        tiny_dnn::result res = nn.test(test_images, test_labels);
+        tiny_dnn::result res = nn->test(test_images, test_labels);
         cout << t1.elapsed() << "s elapsed (test)." << endl;
-        double percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
+
+        percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
         log << res.num_success << "/" << res.num_total << " "<< percentage <<"%"<<endl;
 
         if (percentage == 50.0){
@@ -460,10 +471,10 @@ vector<double> train_cifar(string data_train, string data_test, string nn_config
             overfitting_flag=true;
             return false;
         }
-        cout << "improvement : " << percentage-last_percentage;
+
+        cout << "improvement : " << percentage-previous_percentage;
         disp.restart(train_images.size());
         t.restart();
-        last_percentage=percentage;
         return true;
     };
 
@@ -472,7 +483,7 @@ vector<double> train_cifar(string data_train, string data_test, string nn_config
     };
 
     // training
-    nn.train<cross_entropy>(optimizer, train_images, train_labels,
+    nn->train<cross_entropy>(optimizer, train_images, train_labels,
                             nb_minibatch, nb_train_epochs, on_enumerate_minibatch,
                             on_enumerate_epoch, true, 1);
 
@@ -483,23 +494,21 @@ vector<double> train_cifar(string data_train, string data_test, string nn_config
     }
 
     // test and show results
-    tiny_dnn::result res = nn.test(test_images, test_labels);
+    tiny_dnn::result res = nn->test(test_images, test_labels);
     res.print_detail(cout);
 
-    nn.save("dnn_architecture.json", content_type::model, file_format::json);
-    nn.save("dnn_weights.bin", content_type::weights, file_format::binary);
 
     // save networks
     //ofstream ofs("ball_exp_weights");
     //ofs << nn;
 
-    double percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
-    return {percentage,percentage-last_percentage,i};
+    percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
+    return {percentage,percentage-previous_percentage,i};
 }
 
 void dichotomic_train_cifar(string data_train, string data_test, string nn_config,
                  double learning_rate_start, double learning_rate_end, double dichotomy_depth, ofstream& results_file,
-                 Config& config, string nnbuilder_name) {
+                 Config& config, string nnbuilder_name, double current_best_validation_score) {
   // search is finished
   if (dichotomy_depth < 0){
     cout << "Search finished" << endl;
@@ -515,25 +524,42 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
 
   // we try the middle learning rate
   double learning_rate = (learning_rate_end + learning_rate_start)/2.0;
+
   timer t;
-  vector<double> results = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config, nnbuilder_name);
+  network<sequential> nn;
+  vector<double> results = train_cifar(data_train, data_test, nn_config, learning_rate, cout, config, nnbuilder_name, &nn);
+
+  // writting result in csv file
   double validation_score = results[0];
   if (validation_score > 0){
-    results_file << learning_rate << "," << setprecision (4) << validation_score << "," << to_string(results[1]) << "," << to_string((int)results[2]) << "," << t.elapsed() << std::endl;
+    results_file << learning_rate << ","
+                 << setprecision (4) << validation_score << ","
+                 << to_string(results[1]) << ","
+                 << to_string((int)results[2]) << ","
+                 << t.elapsed() << std::endl;
     learning_rate_start = learning_rate;
   }
   else{
     results_file << learning_rate << "," << "overfit" << "," << to_string(results[1]) << "," << to_string((int)results[2]) << "," << t.elapsed() << std::endl;
     learning_rate_end = learning_rate;
   }
-  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config, nnbuilder_name);
-}
 
+  // saving the neural network if it is better than the current best one
+  if ( validation_score > current_best_validation_score ){
+    cout << "better" << endl;
+    current_best_validation_score = validation_score;
+    string folder = "results/" + nnbuilder_name + "/";
+    nn.save(folder + "dnn_architecture.json", content_type::model, file_format::json);
+    nn.save(folder + "dnn_weights.bin", content_type::weights, file_format::binary);
+  }
+
+  dichotomic_train_cifar(data_train, data_test, nn_config, learning_rate_start, learning_rate_end, dichotomy_depth-1, results_file, config, nnbuilder_name, current_best_validation_score);
+}
 
 int main(int argc, char **argv) {
     if (argc != 4) {
       cerr << "Usage : " << argv[0]
-           << " <train_file> <test_file> <nn_config_file>" << endl;
+           << " <train_data> <test_data> <neural_network_config_file.json>" << endl;
       exit(EXIT_FAILURE);
    }
   Config config;
@@ -548,6 +574,8 @@ int main(int argc, char **argv) {
     keys.push_back(entry.first);
   }
 
+  system("exec rm -r results");
+  mkdir("results", 0777);
   auto learning_task =
     [&](int start_idx, int end_idx)
     {
@@ -556,25 +584,17 @@ int main(int argc, char **argv) {
         const NNBuilder & nnbuilder = *(config.nnbuilders[nnbuilder_name]);
         InputConfig input = nnbuilder.input;
 
-        std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
-        std::ofstream results_file(file);
-        results_file << "learning_rate,validationScore,last_improvement,last_epoch,learning_time" << std::endl;
+        string result_folder = "results/" + nnbuilder_name + "/";
+        mkdir(result_folder.c_str(), 0777);
 
-        dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name);
+
+        std::string file = "results_" + to_string(input.width) + "x" + to_string(input.height) + "x" + to_string(input.depth) + nnbuilder.toString() + ".csv";
+        std::ofstream results_file(result_folder + file);
+        results_file << "learning_rate,validation_score,last_improvement,last_epoch,learning_time" << std::endl;
+
+        dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name, 0.0);
       }
     };
   int nb_threads = 4;
   rhoban_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
-
-  //auto learning_task =
-  //  [&](int start_idx, int end_idx)
-  //  {
-  //    for (int idx = start_idx; idx < end_idx; idx++) {
-  //      std::cout << "Training " << idx << std::endl;
-  //      trainNN(training_inputs, training_outputs, cv_inputs, cv_outputs,
-  //              learning_rates[idx], reset_weights, &(networks[idx]), &(cv_losses[idx]));
-  //    }
-  //  };
-  //rhoban_utils::MultiCore::runParallelTask(learning_task, learning_rates.size(), nb_threads);
-
 }

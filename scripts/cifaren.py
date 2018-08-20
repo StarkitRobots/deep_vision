@@ -29,6 +29,7 @@ import numpy as np
 import cv2
 import os
 import shutil
+import glob
 
 def to_bin(filename, label, w, h, mode):
     im = cv2.imread(filename)
@@ -157,15 +158,19 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
-    dataout.tofile(outfile)
+    dataout.tofile('train_' + outfile)
 
 if __name__ == '__main__':
-    if (len(sys.argv) <= 1):
-        print("Usage: <output_prefix> <opt: width (default 32)> <opt: height (default same as width)> <opt: mode (BGR or Y)>")
+    if ("-h" in sys.argv or "-help" in sys.argv):
+        print('Usage: <opt: output_prefix (default "data")> <opt: width (default 32)> <opt: height (default same as width)> <opt: mode (BGR or Y)>')
         exit()
     width = 32
     height = 32
     mode = "BGR"
+    output_prefix = "data"
+
+    if (len(sys.argv) > 1):
+        data = int(sys.argv[1])
     if (len(sys.argv) > 2):
         width = int(sys.argv[2])
         height = width
@@ -175,6 +180,6 @@ if __name__ == '__main__':
         mode = sys.argv[4]
     
     dir = glob.glob("Images/*")[0]
-    positive_dir = dir + "/positive"
-    negative_dir = dir + "/negative"
+    positive_dir = dir + "/positive/"
+    negative_dir = dir + "/negative/"
     to_cifar_balanced(positive_dir, negative_dir, sys.argv[1], width, height, mode)
