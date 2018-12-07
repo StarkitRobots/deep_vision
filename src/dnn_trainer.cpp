@@ -1,9 +1,11 @@
 //*****************************************************************************
 //
-// File Name	: 'ball_train_exp.cpp'
-// Author	: Steve NGUYEN
+// File Name	: 'dnn_trainer.cpp'
+// Authors	: Steve NGUYEN
+//            Patxi LABORDE-RUIBIETA
 // Contact      : steve.nguyen.000@gmail.com
-// Created	: lundi, march 20 2017
+//                patxi.laborde.zubieta@gmail.com
+// Created	: 6th of December 2018
 // Revised	:
 // Version	:
 // Target MCU	:
@@ -466,8 +468,10 @@ vector<double> train_cifar(
         percentage = (double)(res.num_success)/(double)(res.num_total)*100.0;
         log << res.num_success << "/" << res.num_total << " "<< percentage <<"%"<<endl;
 
-        if (percentage == 50.0){
-            cout << "Overfitting." << endl;
+        // In a more general situation the idea would be the following for overfitting detection :
+        // abs(average_class_sizes/nb_class - succes) < epsilon => overfitting
+        if (percentage < 60.0 && i > nb_train_epochs/2){
+            cout << "Probably overfitting." << endl;
             overfitting_flag=true;
             return false;
         }
@@ -557,9 +561,9 @@ void dichotomic_train_cifar(string data_train, string data_test, string nn_confi
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
+    if (argc < 4) {
       cerr << "Usage : " << argv[0]
-           << " <train_data> <test_data> <neural_network_config_file.json>" << endl;
+           << " <learning_data> <test_data> <neural_network_config_file.json> [thread_number (default 4)]" << endl;
       exit(EXIT_FAILURE);
    }
   Config config;
@@ -593,8 +597,13 @@ int main(int argc, char **argv) {
         results_file << "learning_rate,validation_score,last_improvement,last_epoch,learning_time" << std::endl;
 
         dichotomic_train_cifar(argv[1], argv[2], argv[3], learning_rate_start, learning_rate_end, dichotomy_depth, results_file, config, nnbuilder_name, 0.0);
+        std::cout << "Starting training the configuration " + nnbuilder_name << std::endl;
       }
     };
   int nb_threads = 4;
+  if (argc > 4){
+    nb_threads = 5;
+  }
+  std::cout << "The number of thread that will be lunched is " + std::to_string(nb_threads) << std::endl;
   rhoban_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
 }

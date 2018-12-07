@@ -3,9 +3,11 @@
 
 #
 #  File Name	: 'cifaren.py'
-#  Author	: Steve NGUYEN
+#  Authors	: Steve NGUYEN
+#                 Patxi Laborde-Zubieta
 #  Contact      : steve.nguyen.000@gmail.com
-#  Created	: lundi, novembre 21 2016
+#                 patxi.laborde.zubieta@gmail.com
+#  Created	: december 6th 2018
 #  Revised	:
 #  Version	:
 #  Target MCU	:
@@ -21,8 +23,6 @@
 # the green, and the final 1024 the blue. The values are stored in
 # row-major order, so the first 32 bytes are the red channel values of the
 # first row of the image.
-
-#
 
 import sys
 import numpy as np
@@ -126,6 +126,10 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
 
     print "Preparing the learning and the test sets."
     pos_test_dir, pos_learning_dir, neg_test_dir, neg_learning_dir = make_test_set(positive_dir, negative_dir)
+    print "Positive test directory (" +str(len(glob.glob(pos_test_dir + "*"))) + " images) : " +  pos_test_dir
+    print "Positive learning directory (" +str(len(glob.glob(pos_learning_dir + "*"))) + " images) : " + pos_learning_dir
+    print "Negative test directory (" +str(len(glob.glob(neg_test_dir + "*"))) + " images) : " +  neg_test_dir
+    print "Negative learning directory : (" +str(len(glob.glob(neg_learning_dir + "*"))) + " images) :  " + neg_learning_dir
 
     print "Constructing the binaries."
     pos_test_files_path = [pos_test_dir + file for file in os.listdir(pos_test_dir) if file.endswith("png")]
@@ -158,19 +162,19 @@ def to_cifar_balanced(positive_dir, negative_dir, outfile, w, h, mode):
     dataout = np.concatenate(dataout, axis=0)
     # print(dataout)
     dataout =  np.array(dataout, np.uint8)
-    dataout.tofile('train_' + outfile)
+    dataout.tofile('learning_' + outfile)
 
 if __name__ == '__main__':
     if ("-h" in sys.argv or "-help" in sys.argv):
-        print('Usage: <opt: output_prefix (default "data")> <opt: width (default 32)> <opt: height (default same as width)> <opt: mode (BGR or Y)>')
+        print('Usage: <opt: output_suffix (default "data")> <opt: width (default 32)> <opt: height (default same as width)> <opt: mode (BGR or Y)>')
         exit()
     width = 32
     height = 32
     mode = "BGR"
-    output_prefix = "data"
+    output_suffix= "data"
 
     if (len(sys.argv) > 1):
-        data = int(sys.argv[1])
+        output_suffix = int(sys.argv[1])
     if (len(sys.argv) > 2):
         width = int(sys.argv[2])
         height = width
@@ -182,4 +186,4 @@ if __name__ == '__main__':
     dir = glob.glob("Images/*")[0]
     positive_dir = dir + "/positive/"
     negative_dir = dir + "/negative/"
-    to_cifar_balanced(positive_dir, negative_dir, sys.argv[1], width, height, mode)
+    to_cifar_balanced(positive_dir, negative_dir, output_suffix, width, height, mode)
