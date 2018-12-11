@@ -602,8 +602,8 @@ int main(int argc, char **argv) {
     };
   int nb_threads = 4;
   if (argc > 4){
-    nb_threads = 5;
+    nb_threads = std::stoi(argv[4]);
   }
-  std::cout << "The number of thread that will be lunched is " + std::to_string(nb_threads) << std::endl;
+  std::cout << "The number of thread that will be launched is " + std::to_string(nb_threads) << std::endl;
   rhoban_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
 }
