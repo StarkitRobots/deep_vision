@@ -80,6 +80,9 @@ def to_bin(filename, label, w, h, mode):
 #    dataout =  np.array(dataout, np.uint8)
 #    dataout.tofile(outfile)
 
+
+# Creates both, learning and test set in the provided directories:
+# - The function ensures that learning and validation set are balanced
 def make_test_set(positive_dir,negative_dir):
     # Preparing the directories 
     positive_test_dir = positive_dir + 'test_set/'
@@ -114,9 +117,10 @@ def make_test_set(positive_dir,negative_dir):
     neg_files = [file for file in os.listdir(negative_dir) if file.endswith("png")]
     np.random.shuffle(neg_files)
     nb_negative_tests = len(os.listdir(positive_test_dir + "/generated"))
+    nb_negative_learning = len(os.listdir(positive_learning_dir + "/generated"))
     for file in neg_files[:nb_negative_tests]:
       shutil.copyfile(negative_dir + file,negative_test_dir + file)
-    for file in neg_files[nb_negative_tests:]:
+    for file in neg_files[nb_negative_tests:(nb_negative_tests+nb_negative_learning)]:
       shutil.copyfile(negative_dir + file,negative_learning_dir + file)
 
     return positive_test_dir + "generated/",positive_learning_dir + "generated/", negative_test_dir,negative_learning_dir
