@@ -438,6 +438,13 @@ vector<double> train_cifar(
                &test_images, &test_labels, -1.0, 1.0, 0, 0,
                input.width, input.height, input.depth);
 
+    if (train_images.size() < test_images.size()) {
+      throw std::runtime_error("train_cifar: less training images than test images ("
+                               + std::to_string(train_images.size()) + " < "
+                               + std::to_string(test_images.size())
+                               + "), did you invert the arguments?");
+    }
+
     cout << "start learning" << endl;
 
     progress_display disp(train_images.size());
