@@ -64,6 +64,31 @@
       
   * When you find the best one, relunch the learning with only one network and the specific learning rate.
 
+### Choice of detection threshold ###
+
+In order to choose the appropriate value for the detection threshold, a program
+named `analyze_acceptance_score` allows to compute the false positive and false
+negative rates according to labeled images.
+
+First, compute the scores:
+
+```
+bin/analyze_acceptance_score <architecture.json> <weights.bin> <positive_dir> <negative_dir> > scores.csv
+```
+
+Then, use the score to create a graph:
+
+```
+Rscript scripts/analyze_acceptance_score.r scores.csv
+```
+
+An image named `graph.png` will be created and will contain the false positive
+and false negative rates as a function of the score threshold. This information
+can be used to manipulate the trade-off between false positive and false
+negative.
+
+
+
 ### Add the network to robots ###
 
 * Put the files in the folder `env/common/dnn/posts` or `env/common/dnn/balls`
