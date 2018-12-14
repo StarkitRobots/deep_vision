@@ -116,7 +116,7 @@ double getScore(network<sequential> &nn, const std::string& filename) {
   // convert imagefile to vec_t
   vec_t data;
   convert_image(filename, -1.0, 1.0, width, height, data);
-  
+
   // recognize
   auto res = nn.predict(data);
 
@@ -160,7 +160,7 @@ std::map<double, std::pair<double,double>> getErrorRates(network<sequential> &nn
     for (double score : pos_scores) {
       if (score >= p) fp++;
     }
-    result[p] = {fp / neg_paths.size(), fn / pos_paths.size()};
+    result[p] = {fp / (double)neg_paths.size(), fn / (double)pos_paths.size()};
   }
   return result;
 }
@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
 
   construct_net(nn, architecture_path, weights_path);
 
-  
+
   vector<string> positive_paths, negative_paths;
   getDir(positive_dir, positive_paths);
   getDir(negative_dir, negative_paths);
