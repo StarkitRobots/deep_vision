@@ -123,42 +123,52 @@ double getScore(network<sequential> &nn, const std::string& filename) {
   return res[1];
 }
 
-// Evaluate all the provided files
-// Fill nb_pos and nb_neg with appropriate values
-void evaluateFiles(network<sequential> &nn, const vector<string> & file_paths,
-                   double acceptance_score, int * nb_pos, int * nb_neg)
+/// Return the scores for all of the mentioned files given the current network
+std::vector<double> getScores(network<sequential> &nn, const vector<string> & file_paths)
 {
-  *nb_pos = 0;
-  *nb_neg = 0;
+  std::vector<double> scores;
   for(string file_path : file_paths) {
-    double score = getScore(nn, file_path);
-    if(score < acceptance_score)
-      (*nb_neg)++;
-    else
-      (*nb_pos)++;
+    scores.push_back(getScore(nn, file_path));
   }
+  return scores;
 }
 
-/// [out]: false_pos_rate : p(reco=Pos|reality=Neg) in [0,1]
-/// [out]: false_neg_rate : p(reco=Neg|reality=Pos) in [0,1]
-void evaluateAcceptanceScore(network<sequential> &nn,
-                             const vector<string> & pos_paths,
-                             const vector<string> & neg_paths,
-                             double acceptance_score,
-                             double * false_pos_rate, double * false_neg_rate)
+/// Return a map with:
+/// - acceptanceScore as key
+/// (false_pos_rate, false_neg_rate) as value
+///
+/// With:
+/// false_pos_rate : p(reco=Pos|reality=Neg) in [0,1]
+/// false_neg_rate : p(reco=Neg|reality=Pos) in [0,1]
+std::map<double, std::pair<double,double>> getErrorRates(network<sequential> &nn,
+                                                         const vector<string> & pos_paths,
+                                                         const vector<string> & neg_paths,
+                                                         double min = 0.01,
+                                                         double max = 0.99,
+                                                         double step = 0.05)
 {
-  // t -> true, f -> false
-  // p -> positive, n -> negative
-  int tp, fp, tn, fn;
-  evaluateFiles(nn, pos_paths, acceptance_score, &tp, &fn);
-  evaluateFiles(nn, neg_paths, acceptance_score, &fp, &tn);
-  *false_pos_rate = fp / (double)(fp + tn);
-  *false_neg_rate = fn / (double)(fn + tp);
+  std::vector<double> pos_scores = getScores(nn, pos_paths);
+  std::vector<double> neg_scores = getScores(nn, neg_paths);
+
+  std::map<double, std::pair<double,double>> result;
+
+  for (double p = min; p <= max; p += step) {
+    int fp(0), fn(0);
+    for (double score : pos_scores) {
+      if (score < p) fn++;
+    }
+    for (double score : pos_scores) {
+      if (score >= p) fp++;
+    }
+    result[p] = {fp / neg_paths.size(), fn / pos_paths.size()};
+  }
+  return result;
 }
+
 
 int main(int argc, char** argv) {
-  if (argc != 5) {
-    cout << "USAGE: ./analyze_acceptance_score ARCH.json WEIGHTS.bin <pos_dir> <neg_dir>"<<endl;
+  if (argc != 5 && argc != 6) {
+    cout << "USAGE: ./analyze_acceptance_score ARCH.json WEIGHTS.bin <pos_dir> <neg_dir> <opt: step_size>"<<endl;
     return 0;
   }
 
@@ -167,24 +177,27 @@ int main(int argc, char** argv) {
   string positive_dir(argv[3]);
   string negative_dir(argv[4]);
 
+  double step = 0.05;
+  if (argc > 5) {
+    step = std::stod(argv[5]);
+  }
+
   vector<string> testfiles;
 
   network<sequential> nn;
 
   construct_net(nn, architecture_path, weights_path);
 
-  double p_delta = 0.05;
-
-  std::cout << "acceptance_score,false_pos_rate,false_neg_rate" << std::endl;
-
+  
   vector<string> positive_paths, negative_paths;
   getDir(positive_dir, positive_paths);
   getDir(negative_dir, negative_paths);
 
-  for (double p = p_delta; p < 0.999; p += p_delta) {
-    double false_pos_rate(0.0), false_neg_rate(0.0);
-    evaluateAcceptanceScore(nn, positive_paths, negative_paths, p,
-                            &false_pos_rate, &false_neg_rate);
-    std::cout << p << "," << false_pos_rate << "," << false_neg_rate << std::endl;
+  std::map<double, std::pair<double,double>> error_rates_by_acceptance_rate;
+  error_rates_by_acceptance_rate = getErrorRates(nn, positive_paths, negative_paths, step, 1.0 - step, step);
+
+  std::cout << "acceptance_score,false_pos_rate,false_neg_rate" << std::endl;
+  for (const auto & entry : error_rates_by_acceptance_rate) {
+    std::cout << entry.first << "," << entry.second.first << "," << entry.second.second << std::endl;
   }
 }
