@@ -17,9 +17,6 @@
 //
 //*****************************************************************************
 
-
-
-
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
@@ -32,42 +29,37 @@
 #include <errno.h>
 #include <map>
 
-
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace std;
 
-
-int getDir (string dir, vector<string> &files)
+int getDir(string dir, vector<string>& files)
 {
-  DIR *dp;
-  struct dirent *dirp;
-  if((dp  = opendir(dir.c_str())) == NULL) {
+  DIR* dp;
+  struct dirent* dirp;
+  if ((dp = opendir(dir.c_str())) == NULL)
+  {
     cout << "Error(" << errno << ") opening " << dir << endl;
     return errno;
   }
 
-  while ((dirp = readdir(dp)) != NULL) {
-    if(strstr( dirp->d_name, ".png" ))
-      files.push_back(dir+'/'+string(dirp->d_name));
+  while ((dirp = readdir(dp)) != NULL)
+  {
+    if (strstr(dirp->d_name, ".png"))
+      files.push_back(dir + '/' + string(dirp->d_name));
   }
   closedir(dp);
   return 0;
 }
 
-
-void convert_image(const std::string& imagefilename,
-                   double minv,
-                   double maxv,
-                   int w,
-                   int h,
-                   vec_t& data) {
-
+void convert_image(const std::string& imagefilename, double minv, double maxv, int w, int h, vec_t& data)
+{
   cv::Mat img = cv::imread(imagefilename);
-  if (img.data == nullptr) return; // cannot open, or it's not an image
-  cv::Mat resized,res;
-  cv::resize(img, resized, cv::Size(w, h), .0, .0,cv::INTER_AREA);
-  data.resize(w*h*resized.channels(), minv);
+  if (img.data == nullptr)
+    return;  // cannot open, or it's not an image
+  cv::Mat resized, res;
+  cv::resize(img, resized, cv::Size(w, h), .0, .0, cv::INTER_AREA);
+  data.resize(w * h * resized.channels(), minv);
 
   resized.copyTo(res);
 
@@ -78,45 +70,40 @@ void convert_image(const std::string& imagefilename,
   ch2 = channels[1];
   ch3 = channels[2];
 
-  int j=0;
+  int j = 0;
 
   cv::Size sz = ch1.size();
-  int size=sz.height*sz.width;
+  int size = sz.height * sz.width;
 
-  for(int i=0; i<size;i++)
-    data[j*size+i]=minv+(maxv-minv)*ch1.data[i]/255.0;
+  for (int i = 0; i < size; i++)
+    data[j * size + i] = minv + (maxv - minv) * ch1.data[i] / 255.0;
   j++;
-  for(int i=0; i<size;i++)
-    data[j*size+i]=minv+(maxv-minv)*ch2.data[i]/255.0;
+  for (int i = 0; i < size; i++)
+    data[j * size + i] = minv + (maxv - minv) * ch2.data[i] / 255.0;
   j++;
-  for(int i=0; i<size;i++)
-    data[j*size+i]=minv+(maxv-minv)*ch3.data[i]/255.0;
+  for (int i = 0; i < size; i++)
+    data[j * size + i] = minv + (maxv - minv) * ch3.data[i] / 255.0;
 }
 
 template <typename N>
-void construct_net(N& nn, const std::string& arch, const std::string& weights) {
-
-
+void construct_net(N& nn, const std::string& arch, const std::string& weights)
+{
   // load the architecture of the model in json format
   nn.load(arch, content_type::model, file_format::json);
 
   // load the weights of the model in binary format
   nn.load(weights, content_type::weights, file_format::binary);
-
-
-
 }
 
-double getScore(network<sequential> &nn, const std::string& filename) {
-
-
+double getScore(network<sequential>& nn, const std::string& filename)
+{
   int width = nn[0]->in_data_shape()[0].width_;
   int height = nn[0]->in_data_shape()[0].height_;
 
   // convert imagefile to vec_t
   vec_t data;
   convert_image(filename, -1.0, 1.0, width, height, data);
-  
+
   // recognize
   auto res = nn.predict(data);
 
@@ -125,19 +112,22 @@ double getScore(network<sequential> &nn, const std::string& filename) {
 
 // Evaluate all the provided files
 // Fill nb_pos and nb_neg with appropriate values
-void treatFiles(network<sequential> &nn, const vector<string> & file_paths,
-                double acceptance_score, bool expected_positive)
+void treatFiles(network<sequential>& nn, const vector<string>& file_paths, double acceptance_score,
+                bool expected_positive)
 {
   int idx = 0;
-  for(string file_path : file_paths) {
+  for (string file_path : file_paths)
+  {
     double score = getScore(nn, file_path);
     bool fn = score < acceptance_score && expected_positive;
     bool fp = score >= acceptance_score && !expected_positive;
     char filename[30];
-    if(fp || fn) {
+    if (fp || fn)
+    {
       cv::Mat img = cv::imread(file_path);
-      string cmd="mkdir -p missclassified";
-      if (system(cmd.c_str()) != 0) {
+      string cmd = "mkdir -p missclassified";
+      if (system(cmd.c_str()) != 0)
+      {
         std::cerr << "Failed to apply cmd: '" << cmd << "'" << std::endl;
         exit(EXIT_FAILURE);
       }
@@ -148,9 +138,11 @@ void treatFiles(network<sequential> &nn, const vector<string> & file_paths,
   }
 }
 
-int main(int argc, char** argv) {
-  if (argc != 6) {
-    cout << "USAGE: ./get_missclassifications ARCH.json WEIGHTS.bin <pos_dir> <neg_dir> <acceptance_score>"<<endl;
+int main(int argc, char** argv)
+{
+  if (argc != 6)
+  {
+    cout << "USAGE: ./get_missclassifications ARCH.json WEIGHTS.bin <pos_dir> <neg_dir> <acceptance_score>" << endl;
     return 0;
   }
 
