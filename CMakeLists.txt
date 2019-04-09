@@ -59,7 +59,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 # The user can specify to use Intel Threading Building Blocks (TBB)
 # or Open Multi-Processing (OpenMP) as a backend for multi threading
 # processing. In case that none of this libraries are required, tiny-dnn
-# will use the standard C++11 Thread support library.
+# will use the standard C++17 Thread support library.
 
 # Find Intel Threading Building Blocks (TBB)
 find_package(TBB QUIET)
@@ -125,7 +125,7 @@ elseif(USE_NNPACK AND NOT NNPACK_FOUND)
 endif()
 
 # in case that TBB and OMP are not enabled/found,
-# we enable standard C++11 multithread support.
+# we enable standard C++17 multithread support.
 if((NOT USE_TBB) AND (NOT USE_OMP) AND (NOT WIN32))
     #list(APPEND EXTRA_C_FLAGS -pthread)
     set(USE_PTHREAD ON)
@@ -167,13 +167,13 @@ endif()
 ####
 # Setup the compiler options
 
-# set c++ standard to c++11.
+# set c++ standard to c++17.
 # Note: not working on CMake 2.8. We assume that user has
-#       a compiler with C++11 support.
+#       a compiler with C++17 support.
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "C++11 support has been enabled by default.")
+message(STATUS "C++17 support has been enabled by default.")
 
 # Unix
 if(CMAKE_COMPILER_IS_GNUCXX OR MINGW OR
