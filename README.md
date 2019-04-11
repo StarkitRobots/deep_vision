@@ -6,7 +6,7 @@
 
 ## How do I get set up? ##
 
-* This repository uses catkin and a fixed version of tiny-dnn (github.com/rhobandeps/tiny-dnn)
+* This repository uses catkin and a fixed version of tiny-dnn (github.com/starkitdeps/tiny-dnn)
 
 ## Training procedure ##
 
@@ -15,11 +15,11 @@
 * The initial setup only have to be done one time.
 * Choose a folder in which the trainings will be made.
 * Make the following symbolic links:
-  * ln -sf path_to_workspace/src/rhoban/deep_vision/bin/dnn_trainer 
-  * ln -sf path_to_workspace/src/rhoban/deep_vision/scripts
+  * ln -sf path_to_workspace/src/starkit/deep_vision/bin/dnn_trainer 
+  * ln -sf path_to_workspace/src/starkit/deep_vision/scripts
 * The followings are optional:
-  * ln -sf path_to_workspace/src/rhoban/deep_vision/README.md
-  * ln -sf path_to_workspace/src/rhoban/deep_vision/configs
+  * ln -sf path_to_workspace/src/starkit/deep_vision/README.md
+  * ln -sf path_to_workspace/src/starkit/deep_vision/configs
 
 ### Training ###
 
@@ -35,7 +35,7 @@
   * Run `./dnn_trainner` (without arguments to see help message for arguments)
     * The `test_data` and  `train_data` are the files created by `scripts/cifaren.py`.
     * The structure of the neural network is passed in a json file,
-      they are in `rhoban/deep_vision/configs`.
+      they are in `starkit/deep_vision/configs`.
       The parameters are the followings:
         * `networks`: contains the list of the networks you want to train.
            * The training of each network will take a core.

@@ -4,12 +4,12 @@ project(deep_vision VERSION 1.0.0 LANGUAGES C CXX)
 
 
 find_package(catkin REQUIRED COMPONENTS
-  tiny-dnn rhoban_utils)
+  tiny-dnn starkit_utils)
 find_package( OpenCV REQUIRED )
 
 
 catkin_package(
-  CATKIN_DEPENDS tiny-dnn rhoban_utils
+  CATKIN_DEPENDS tiny-dnn starkit_utils
 )
 
 #####

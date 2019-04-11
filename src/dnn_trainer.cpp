@@ -18,8 +18,8 @@
 //
 //*****************************************************************************
 
-#include <rhoban_utils/serialization/factory.h>
-#include <rhoban_utils/util.h>
+#include <starkit_utils/serialization/factory.h>
+#include <starkit_utils/util.h>
 
 #include <iostream>
 #include <vector>
@@ -27,7 +27,7 @@
 #include <string>
 #include <cmath>
 
-#include "rhoban_utils/threading/multi_core.h"
+#include "starkit_utils/threading/multi_core.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -39,7 +39,7 @@ using namespace std;
 // typedef convolutional_layer<activation::identity> conv;
 typedef max_pooling_layer<relu> pool;
 
-class InputConfig : public rhoban_utils::JsonSerializable
+class InputConfig : public starkit_utils::JsonSerializable
 {
 public:
   int width;
@@ -63,9 +63,9 @@ public:
 
   void fromJson(const Json::Value& v, const std::string& dir_path) override
   {
-    width = rhoban_utils::read<int>(v, "width");
-    height = rhoban_utils::read<int>(v, "height");
-    depth = rhoban_utils::read<int>(v, "depth");
+    width = starkit_utils::read<int>(v, "width");
+    height = starkit_utils::read<int>(v, "height");
+    depth = starkit_utils::read<int>(v, "depth");
   }
 
   std::string getClassName() const override
@@ -74,7 +74,7 @@ public:
   }
 };
 
-class NNBuilder : public rhoban_utils::JsonSerializable
+class NNBuilder : public starkit_utils::JsonSerializable
 {
 public:
   /// Input of the neural network
@@ -145,11 +145,11 @@ public:
   void fromJson(const Json::Value& v, const std::string& dir_path)
   {
     NNBuilder::fromJson(v, dir_path);
-    rhoban_utils::tryRead(v, "kernel_size", &kernel_size);
-    rhoban_utils::tryRead(v, "nb_features", &nb_features);
-    rhoban_utils::tryRead(v, "grid_x", &grid_x);
-    rhoban_utils::tryRead(v, "grid_y", &grid_y);
-    rhoban_utils::tryRead(v, "fc_units", &fc_units);
+    starkit_utils::tryRead(v, "kernel_size", &kernel_size);
+    starkit_utils::tryRead(v, "nb_features", &nb_features);
+    starkit_utils::tryRead(v, "grid_x", &grid_x);
+    starkit_utils::tryRead(v, "grid_y", &grid_y);
+    starkit_utils::tryRead(v, "fc_units", &fc_units);
   }
 
   std::string getClassName() const
@@ -246,15 +246,15 @@ public:
   void fromJson(const Json::Value& v, const std::string& dir_path)
   {
     NNBuilder::fromJson(v, dir_path);
-    rhoban_utils::tryRead(v, "kernel1_size", &kernel1_size);
-    rhoban_utils::tryRead(v, "kernel2_size", &kernel2_size);
-    rhoban_utils::tryRead(v, "nb_features1", &nb_features1);
-    rhoban_utils::tryRead(v, "nb_features2", &nb_features2);
-    rhoban_utils::tryRead(v, "grid1_x", &grid1_x);
-    rhoban_utils::tryRead(v, "grid1_y", &grid1_y);
-    rhoban_utils::tryRead(v, "grid2_x", &grid2_x);
-    rhoban_utils::tryRead(v, "grid2_y", &grid2_y);
-    rhoban_utils::tryRead(v, "fc_units", &fc_units);
+    starkit_utils::tryRead(v, "kernel1_size", &kernel1_size);
+    starkit_utils::tryRead(v, "kernel2_size", &kernel2_size);
+    starkit_utils::tryRead(v, "nb_features1", &nb_features1);
+    starkit_utils::tryRead(v, "nb_features2", &nb_features2);
+    starkit_utils::tryRead(v, "grid1_x", &grid1_x);
+    starkit_utils::tryRead(v, "grid1_y", &grid1_y);
+    starkit_utils::tryRead(v, "grid2_x", &grid2_x);
+    starkit_utils::tryRead(v, "grid2_y", &grid2_y);
+    starkit_utils::tryRead(v, "fc_units", &fc_units);
   }
 
   std::string getClassName() const
@@ -311,10 +311,10 @@ public:
   void fromJson(const Json::Value& v, const std::string& dir_path)
   {
     NNBuilder::fromJson(v, dir_path);
-    rhoban_utils::tryRead(v, "n_fmaps1", &n_fmaps1);
-    rhoban_utils::tryRead(v, "n_fmaps2", &n_fmaps2);
-    rhoban_utils::tryRead(v, "n_fmaps3", &n_fmaps3);
-    rhoban_utils::tryRead(v, "n_fc", &n_fc);
+    starkit_utils::tryRead(v, "n_fmaps1", &n_fmaps1);
+    starkit_utils::tryRead(v, "n_fmaps2", &n_fmaps2);
+    starkit_utils::tryRead(v, "n_fmaps3", &n_fmaps3);
+    starkit_utils::tryRead(v, "n_fc", &n_fc);
   }
 
   std::string getClassName() const
@@ -328,7 +328,7 @@ public:
   }
 };
 
-class NNBuilderFactory : public rhoban_utils::Factory<NNBuilder>
+class NNBuilderFactory : public starkit_utils::Factory<NNBuilder>
 {
 public:
   NNBuilderFactory()
@@ -339,7 +339,7 @@ public:
   }
 };
 
-class Config : public rhoban_utils::JsonSerializable
+class Config : public starkit_utils::JsonSerializable
 {
 public:
   std::map<std::string, std::unique_ptr<NNBuilder>> nnbuilders;
@@ -379,11 +379,11 @@ public:
   virtual void fromJson(const Json::Value& v, const std::string& path)
   {
     nnbuilders = NNBuilderFactory().readMap(v, "networks", path);
-    nb_minibatch = rhoban_utils::read<int>(v, "nb_minibatch");
-    nb_train_epochs = rhoban_utils::read<int>(v, "nb_train_epochs");
-    learning_rate_start = rhoban_utils::read<double>(v, "learning_rate_start");
-    learning_rate_end = rhoban_utils::read<double>(v, "learning_rate_end");
-    dichotomy_depth = rhoban_utils::read<int>(v, "dichotomy_depth");
+    nb_minibatch = starkit_utils::read<int>(v, "nb_minibatch");
+    nb_train_epochs = starkit_utils::read<int>(v, "nb_train_epochs");
+    learning_rate_start = starkit_utils::read<double>(v, "learning_rate_start");
+    learning_rate_end = starkit_utils::read<double>(v, "learning_rate_end");
+    dichotomy_depth = starkit_utils::read<int>(v, "dichotomy_depth");
   }
 };
 
@@ -651,5 +651,5 @@ int main(int argc, char** argv)
     nb_threads = std::stoi(argv[4]);
   }
   std::cout << "The number of thread that will be launched is " + std::to_string(nb_threads) << std::endl;
-  rhoban_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
+  starkit_utils::MultiCore::runParallelTask(learning_task, static_cast<int>(config.nnbuilders.size()), nb_threads);
 }

@@ -14,10 +14,10 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>tiny-dnn</build_depend> <!-- rhobandeps/tiny-dnn.git -->
-  <build_depend>rhoban_utils</build_depend> <!-- rhoban/utils.git -->
+  <build_depend>tiny-dnn</build_depend> <!-- starkitdeps/tiny-dnn.git -->
+  <build_depend>starkit_utils</build_depend> <!-- starkit/utils.git -->
 
   <run_depend>tiny-dnn</run_depend>
-  <run_depend>rhoban_utils</run_depend>
+  <run_depend>starkit_utils</run_depend>
 
 </package>
